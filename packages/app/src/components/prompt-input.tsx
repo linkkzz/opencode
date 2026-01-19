@@ -65,31 +65,21 @@ interface PromptInputProps {
 }
 
 const PLACEHOLDERS = [
-  "Fix a TODO in the codebase",
-  "What is the tech stack of this project?",
-  "Fix broken tests",
-  "Explain how authentication works",
-  "Find and fix security vulnerabilities",
-  "Add unit tests for the user service",
-  "Refactor this function to be more readable",
-  "What does this error mean?",
-  "Help me debug this issue",
-  "Generate API documentation",
-  "Optimize database queries",
-  "Add input validation",
-  "Create a new component for...",
-  "How do I deploy this project?",
-  "Review my code for best practices",
-  "Add error handling to this function",
-  "Explain this regex pattern",
-  "Convert this to TypeScript",
-  "Add logging throughout the codebase",
-  "What dependencies are outdated?",
-  "Help me write a migration script",
-  "Implement caching for this endpoint",
-  "Add pagination to this list",
-  "Create a CLI command for...",
-  "How do environment variables work here?",
+  "搜索标题为下周计划的飞书文档...",
+  "查看飞书文档 https://xxx.feishu.cn/xxx 的内容...",
+  "创建一个飞书文档写入会议总结...",
+  "在飞书文档中添加新的章节...",
+  "总结这个会议记录的要点...",
+  "把分析结果写入这个飞书文档...",
+  "帮我把这份数据整理成表格...",
+  "搜索最近创建的飞书文档...",
+  "写一份项目进度汇报...",
+  "在飞书文档中添加评论...",
+  "检查这份报告的错别字...",
+  "修改飞书文档的开头部分...",
+  "帮我优化这段话的表达...",
+  "搜索包含关键词的飞书文档...",
+  "查看飞书文档的评论列表...",
 ]
 
 interface SlashCommand {
@@ -1496,9 +1486,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           />
           <Show when={!prompt.dirty()}>
             <div class="absolute top-0 inset-x-0 px-5 py-3 pr-12 text-14-regular text-text-weak pointer-events-none whitespace-nowrap truncate">
-              {store.mode === "shell"
-                ? "Enter shell command..."
-                : `Ask anything... "${PLACEHOLDERS[store.placeholder]}"`}
+              {store.mode === "shell" ? "Enter shell command..." : `${PLACEHOLDERS[store.placeholder]}`}
             </div>
           </Show>
         </div>

@@ -297,7 +297,7 @@ function App() {
       },
     },
     {
-      title: "New session",
+      title: "今天想聊点什么？",
       suggested: route.data.type === "session",
       value: "session.new",
       keybind: "session_new",

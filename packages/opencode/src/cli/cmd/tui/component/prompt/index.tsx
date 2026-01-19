@@ -52,7 +52,23 @@ export type PromptRef = {
   submit(): void
 }
 
-const PLACEHOLDERS = ["Fix a TODO in the codebase", "What is the tech stack of this project?", "Fix broken tests"]
+const PLACEHOLDERS = [
+  "搜索标题为下周计划的飞书文档...",
+  "查看飞书文档 https://xxx.feishu.cn/xxx 的内容...",
+  "创建一个飞书文档写入会议总结...",
+  "在飞书文档中添加新的章节...",
+  "总结这个会议记录的要点...",
+  "把分析结果写入这个飞书文档...",
+  "帮我把这份数据整理成表格...",
+  "搜索最近创建的飞书文档...",
+  "写一份项目进度汇报...",
+  "在飞书文档中添加评论...",
+  "检查这份报告的错别字...",
+  "修改飞书文档的开头部分...",
+  "帮我优化这段话的表达...",
+  "搜索包含关键词的飞书文档...",
+  "查看飞书文档的评论列表...",
+]
 
 export function Prompt(props: PromptProps) {
   let input: TextareaRenderable
@@ -765,7 +781,7 @@ export function Prompt(props: PromptProps) {
             flexGrow={1}
           >
             <textarea
-              placeholder={props.sessionID ? undefined : `Ask anything... "${PLACEHOLDERS[store.placeholder]}"`}
+              placeholder={props.sessionID ? undefined : `${PLACEHOLDERS[store.placeholder]}`}
               textColor={keybind.leader ? theme.textMuted : theme.text}
               focusedTextColor={keybind.leader ? theme.textMuted : theme.text}
               minHeight={1}
