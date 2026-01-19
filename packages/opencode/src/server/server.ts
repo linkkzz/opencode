@@ -10,7 +10,6 @@ import { basicAuth } from "hono/basic-auth"
 import z from "zod"
 import { Provider } from "../provider/provider"
 import { NamedError } from "@opencode-ai/util/error"
-import { LSP } from "../lsp"
 import { Format } from "../format"
 import { TuiRoutes } from "./routes/tui"
 import { Instance } from "../project/instance"
@@ -370,27 +369,6 @@ export namespace Server {
           async (c) => {
             const skills = await Skill.all()
             return c.json(skills)
-          },
-        )
-        .get(
-          "/lsp",
-          describeRoute({
-            summary: "Get LSP status",
-            description: "Get LSP server status",
-            operationId: "lsp.status",
-            responses: {
-              200: {
-                description: "LSP server status",
-                content: {
-                  "application/json": {
-                    schema: resolver(LSP.Status.array()),
-                  },
-                },
-              },
-            },
-          }),
-          async (c) => {
-            return c.json(await LSP.status())
           },
         )
         .get(

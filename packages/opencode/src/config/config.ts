@@ -14,7 +14,6 @@ import { Flag } from "../flag/flag"
 import { Auth } from "../auth"
 import { type ParseError as JsoncParseError, parse as parseJsonc, printParseErrorCode } from "jsonc-parser"
 import { Instance } from "../project/instance"
-import { LSPServer } from "../lsp/server"
 import { BunProc } from "@/bun"
 import { Installation } from "@/installation"
 import { ConfigMarkdown } from "./markdown"
@@ -1003,11 +1002,8 @@ export namespace Config {
           (data) => {
             if (!data) return true
             if (typeof data === "boolean") return true
-            const serverIds = new Set(Object.values(LSPServer).map((s) => s.id))
-
             return Object.entries(data).every(([id, config]) => {
               if (config.disabled) return true
-              if (serverIds.has(id)) return true
               return Boolean(config.extensions)
             })
           },

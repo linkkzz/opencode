@@ -1,3 +1,4 @@
+import os from "os"
 import { Slug } from "@opencode-ai/util/slug"
 import path from "path"
 import { BusEvent } from "@/bus/bus-event"
@@ -31,6 +32,27 @@ export namespace Session {
 
   function createDefaultTitle(isChild = false) {
     return (isChild ? childTitlePrefix : parentTitlePrefix) + new Date().toISOString()
+  }
+
+  function createHomePermissions() {
+    const home = Global.Path.home
+    return [
+      {
+        permission: "read" as const,
+        pattern: `${home}/*`,
+        action: "allow" as const,
+      },
+      {
+        permission: "edit" as const,
+        pattern: `${home}/*`,
+        action: "allow" as const,
+      },
+      {
+        permission: "external_directory" as const,
+        pattern: `${home}/*`,
+        action: "allow" as const,
+      },
+    ]
   }
 
   export function isDefaultTitle(title: string) {
@@ -196,6 +218,9 @@ export namespace Session {
     directory: string
     permission?: PermissionNext.Ruleset
   }) {
+    const homePermissions = createHomePermissions()
+    const mergedPermissions = PermissionNext.merge(homePermissions, input.permission ?? [])
+
     const result: Info = {
       id: Identifier.descending("session", input.id),
       slug: Slug.create(),
@@ -204,7 +229,7 @@ export namespace Session {
       directory: input.directory,
       parentID: input.parentID,
       title: input.title ?? createDefaultTitle(!!input.parentID),
-      permission: input.permission,
+      permission: mergedPermissions.length > 0 ? mergedPermissions : undefined,
       time: {
         created: Date.now(),
         updated: Date.now(),

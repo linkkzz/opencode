@@ -5,7 +5,6 @@ import path from "path"
 import z from "zod"
 import { Log } from "@/util/log"
 import { Instance } from "./instance"
-import { FileWatcher } from "@/file/watcher"
 
 const log = Log.create({ service: "vcs" })
 
@@ -46,15 +45,7 @@ export namespace Vcs {
       let current = await currentBranch()
       log.info("initialized", { branch: current })
 
-      const unsubscribe = Bus.subscribe(FileWatcher.Event.Updated, async (evt) => {
-        if (evt.properties.file.endsWith("HEAD")) return
-        const next = await currentBranch()
-        if (next !== current) {
-          log.info("branch changed", { from: current, to: next })
-          current = next
-          Bus.publish(Event.BranchUpdated, { branch: next })
-        }
-      })
+      const unsubscribe = () => {}
 
       return {
         branch: async () => current,

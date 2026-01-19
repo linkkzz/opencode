@@ -14,6 +14,7 @@ import { fetch as tauriFetch } from "@tauri-apps/plugin-http"
 import { Store } from "@tauri-apps/plugin-store"
 import { Splash } from "@opencode-ai/ui/logo"
 import { createSignal, Show, Accessor, JSX, createResource, onMount, onCleanup } from "solid-js"
+import { base64Encode } from "@opencode-ai/util/encode"
 
 import { UPDATER_ENABLED } from "./updater"
 import { createMenu } from "./menu"
@@ -307,6 +308,35 @@ createMenu()
 // Stops mousewheel events from reaching Tauri's pinch-to-zoom handler
 root?.addEventListener("mousewheel", (e) => {
   e.stopPropagation()
+})
+
+// Simple redirect to home directory
+onMount(() => {
+  const storageKey = "opencode-home-redirected-v2"
+  const alreadyRedirected = sessionStorage.getItem(storageKey) === "true"
+
+  const checkAndRedirect = async () => {
+    if (alreadyRedirected) return
+
+    const currentPath = window.location.pathname
+    if (currentPath === "/" || currentPath === "") {
+      try {
+        const homedir = await invoke<string>("get_home_dir")
+        const encodedDir = base64Encode(homedir)
+        const targetPath = `/${encodedDir}/session`
+        window.location.href = targetPath
+        sessionStorage.setItem(storageKey, "true")
+      } catch (e) {
+        // If it fails, mark as redirected to avoid infinite loops
+        sessionStorage.setItem(storageKey, "true")
+      }
+    }
+  }
+
+  checkAndRedirect()
+
+  // Also check after a short delay in case server wasn't ready
+  setTimeout(checkAndRedirect, 200)
 })
 
 render(() => {

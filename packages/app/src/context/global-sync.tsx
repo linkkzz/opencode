@@ -71,7 +71,6 @@ type State = {
   mcp: {
     [name: string]: McpStatus
   }
-  lsp: LspStatus[]
   vcs: VcsInfo | undefined
   limit: number
   message: {
@@ -140,7 +139,6 @@ function createGlobalSync() {
           permission: {},
           question: {},
           mcp: {},
-          lsp: [],
           vcs: cache[0].value,
           limit: 5,
           message: {},
@@ -240,7 +238,6 @@ function createGlobalSync() {
           sdk.session.status().then((x) => setStore("session_status", x.data!)),
           loadSessions(directory),
           sdk.mcp.status().then((x) => setStore("mcp", x.data!)),
-          sdk.lsp.status().then((x) => setStore("lsp", x.data!)),
           sdk.vcs.get().then((x) => {
             const next = x.data ?? store.vcs
             setStore("vcs", next)
@@ -556,16 +553,6 @@ function createGlobalSync() {
             draft.splice(result.index, 1)
           }),
         )
-        break
-      }
-      case "lsp.updated": {
-        const sdk = createOpencodeClient({
-          baseUrl: globalSDK.url,
-          fetch: platform.fetch,
-          directory,
-          throwOnError: true,
-        })
-        sdk.lsp.status().then((x) => setStore("lsp", x.data ?? []))
         break
       }
     }

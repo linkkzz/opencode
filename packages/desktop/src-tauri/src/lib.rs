@@ -135,6 +135,13 @@ async fn set_default_server_url(app: AppHandle, url: Option<String>) -> Result<(
     Ok(())
 }
 
+#[tauri::command]
+fn get_home_dir() -> Result<String, String> {
+    std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .map_err(|_| "Failed to get home directory".to_string())
+}
+
 fn get_sidecar_port() -> u32 {
     option_env!("OPENCODE_PORT")
         .map(|s| s.to_string())
@@ -259,7 +266,8 @@ pub fn run() {
             install_cli,
             ensure_server_ready,
             get_default_server_url,
-            set_default_server_url
+            set_default_server_url,
+            get_home_dir
         ])
         .setup(move |app| {
             let app = app.handle().clone();
