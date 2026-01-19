@@ -4,7 +4,7 @@ import { pathToFileURL } from "url"
 import os from "os"
 import z from "zod"
 import { Filesystem } from "../util/filesystem"
-import { ModelsDev } from "../provider/models"
+import { Models } from "../provider/models"
 import { mergeDeep, pipe, unique } from "remeda"
 import { Global } from "../global"
 import fs from "fs/promises"
@@ -814,14 +814,14 @@ export namespace Config {
   })
   export type Layout = z.infer<typeof Layout>
 
-  export const Provider = ModelsDev.Provider.partial()
+  export const Provider = Models.Provider.partial()
     .extend({
       whitelist: z.array(z.string()).optional(),
       blacklist: z.array(z.string()).optional(),
       models: z
         .record(
           z.string(),
-          ModelsDev.Model.partial().extend({
+          Models.Model.partial().extend({
             variants: z
               .record(
                 z.string(),

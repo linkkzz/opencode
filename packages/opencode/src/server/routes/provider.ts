@@ -3,7 +3,7 @@ import { describeRoute, validator, resolver } from "hono-openapi"
 import z from "zod"
 import { Config } from "../../config/config"
 import { Provider } from "../../provider/provider"
-import { ModelsDev } from "../../provider/models"
+import { Models } from "../../provider/models"
 import { ProviderAuth } from "../../provider/auth"
 import { mapValues } from "remeda"
 import { errors } from "../error"
@@ -24,7 +24,7 @@ export const ProviderRoutes = lazy(() =>
               "application/json": {
                 schema: resolver(
                   z.object({
-                    all: ModelsDev.Provider.array(),
+                    all: Models.Provider.array(),
                     default: z.record(z.string(), z.string()),
                     connected: z.array(z.string()),
                   }),
@@ -39,7 +39,7 @@ export const ProviderRoutes = lazy(() =>
         const disabled = new Set(config.disabled_providers ?? [])
         const enabled = config.enabled_providers ? new Set(config.enabled_providers) : undefined
 
-        const allProviders = await ModelsDev.get()
+        const allProviders = await Models.get()
         const filteredProviders: Record<string, (typeof allProviders)[string]> = {}
         for (const [key, value] of Object.entries(allProviders)) {
           if ((enabled ? enabled.has(key) : true) && !disabled.has(key)) {
@@ -49,7 +49,7 @@ export const ProviderRoutes = lazy(() =>
 
         const connected = await Provider.list()
         const providers = Object.assign(
-          mapValues(filteredProviders, (x) => Provider.fromModelsDevProvider(x)),
+          mapValues(filteredProviders, (x) => Provider.fromModelsProvider(x)),
           connected,
         )
         return c.json({

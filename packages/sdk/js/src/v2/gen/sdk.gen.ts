@@ -36,7 +36,6 @@ import type {
   GlobalEventResponses,
   GlobalHealthResponses,
   InstanceDisposeResponses,
-  LspStatusResponses,
   McpAddErrors,
   McpAddResponses,
   McpAuthAuthenticateErrors,
@@ -2907,27 +2906,6 @@ export class App extends HeyApiClient {
   }
 }
 
-export class Lsp extends HeyApiClient {
-  /**
-   * Get LSP status
-   *
-   * Get LSP server status
-   */
-  public status<ThrowOnError extends boolean = false>(
-    parameters?: {
-      directory?: string
-    },
-    options?: Options<never, ThrowOnError>,
-  ) {
-    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
-    return (options?.client ?? this.client).get<LspStatusResponses, unknown, ThrowOnError>({
-      url: "/lsp",
-      ...options,
-      ...params,
-    })
-  }
-}
-
 export class Formatter extends HeyApiClient {
   /**
    * Get formatter status
@@ -3120,11 +3098,6 @@ export class OpencodeClient extends HeyApiClient {
   private _app?: App
   get app(): App {
     return (this._app ??= new App({ client: this.client }))
-  }
-
-  private _lsp?: Lsp
-  get lsp(): Lsp {
-    return (this._lsp ??= new Lsp({ client: this.client }))
   }
 
   private _formatter?: Formatter

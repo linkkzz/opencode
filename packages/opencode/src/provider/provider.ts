@@ -6,7 +6,7 @@ import { NoSuchModelError, type Provider as SDK } from "ai"
 import { Log } from "../util/log"
 import { BunProc } from "../bun"
 import { Plugin } from "../plugin"
-import { ModelsDev } from "./models"
+import { Models } from "./models"
 import { NamedError } from "@opencode-ai/util/error"
 import { Auth } from "../auth"
 import { Env } from "../env"
@@ -580,13 +580,14 @@ export namespace Provider {
       key: z.string().optional(),
       options: z.record(z.string(), z.any()),
       models: z.record(z.string(), Model),
+      api: z.string().optional(),
     })
     .meta({
       ref: "Provider",
     })
   export type Info = z.infer<typeof Info>
 
-  function fromModelsDevModel(provider: ModelsDev.Provider, model: ModelsDev.Model): Model {
+  function fromModelsModel(provider: Models.Provider, model: Models.Model): Model {
     const m: Model = {
       id: model.id,
       providerID: provider.id,
@@ -653,22 +654,23 @@ export namespace Provider {
     return m
   }
 
-  export function fromModelsDevProvider(provider: ModelsDev.Provider): Info {
+  export function fromModelsProvider(provider: Models.Provider): Info {
     return {
       id: provider.id,
       source: "custom",
       name: provider.name,
       env: provider.env ?? [],
       options: {},
-      models: mapValues(provider.models, (model) => fromModelsDevModel(provider, model)),
+      models: mapValues(provider.models, (model) => fromModelsModel(provider, model)),
+      api: provider.api,
     }
   }
 
   const state = Instance.state(async () => {
     using _ = log.time("state")
     const config = await Config.get()
-    const modelsDev = await ModelsDev.get()
-    const database = mapValues(modelsDev, fromModelsDevProvider)
+    const modelsDev = await Models.get()
+    const database = mapValues(modelsDev, fromModelsProvider)
 
     const disabled = new Set(config.disabled_providers ?? [])
     const enabled = config.enabled_providers ? new Set(config.enabled_providers) : null
@@ -688,8 +690,6 @@ export namespace Provider {
 
     log.info("init")
 
-    const configProviders = Object.entries(config.provider ?? {})
-
     // Add GitHub Copilot Enterprise provider that inherits from GitHub Copilot
     if (database["github-copilot"]) {
       const githubCopilot = database["github-copilot"]
@@ -704,105 +704,25 @@ export namespace Provider {
       }
     }
 
+    // @ts-ignore - Type incompatibility between Model types from API and Model types for API calls
+    // Initialize providers from API/database
+    for (const [providerID, provider] of Object.entries(database)) {
+      if (!isProviderAllowed(providerID)) continue
+      providers[providerID] = fromModelsProvider(provider)
+    }
+
     function mergeProvider(providerID: string, provider: Partial<Info>) {
       const existing = providers[providerID]
       if (existing) {
-        // @ts-expect-error
+        // @ts-ignore - Type incompatibility between Model types from different merge sources
         providers[providerID] = mergeDeep(existing, provider)
         return
       }
-      const match = database[providerID]
-      if (!match) return
-      // @ts-expect-error
-      providers[providerID] = mergeDeep(match, provider)
-    }
-
-    // extend database from config
-    for (const [providerID, provider] of configProviders) {
-      const existing = database[providerID]
-      const parsed: Info = {
-        id: providerID,
-        name: provider.name ?? existing?.name ?? providerID,
-        env: provider.env ?? existing?.env ?? [],
-        options: mergeDeep(existing?.options ?? {}, provider.options ?? {}),
-        source: "config",
-        models: existing?.models ?? {},
-      }
-
-      for (const [modelID, model] of Object.entries(provider.models ?? {})) {
-        const existingModel = parsed.models[model.id ?? modelID]
-        const name = iife(() => {
-          if (model.name) return model.name
-          if (model.id && model.id !== modelID) return modelID
-          return existingModel?.name ?? modelID
-        })
-        const parsedModel: Model = {
-          id: modelID,
-          api: {
-            id: model.id ?? existingModel?.api.id ?? modelID,
-            npm:
-              model.provider?.npm ??
-              provider.npm ??
-              existingModel?.api.npm ??
-              modelsDev[providerID]?.npm ??
-              "@ai-sdk/openai-compatible",
-            url: provider?.api ?? existingModel?.api.url ?? modelsDev[providerID]?.api,
-          },
-          status: model.status ?? existingModel?.status ?? "active",
-          name,
-          providerID,
-          capabilities: {
-            temperature: model.temperature ?? existingModel?.capabilities.temperature ?? false,
-            reasoning: model.reasoning ?? existingModel?.capabilities.reasoning ?? false,
-            attachment: model.attachment ?? existingModel?.capabilities.attachment ?? false,
-            toolcall: model.tool_call ?? existingModel?.capabilities.toolcall ?? true,
-            input: {
-              text: model.modalities?.input?.includes("text") ?? existingModel?.capabilities.input.text ?? true,
-              audio: model.modalities?.input?.includes("audio") ?? existingModel?.capabilities.input.audio ?? false,
-              image: model.modalities?.input?.includes("image") ?? existingModel?.capabilities.input.image ?? false,
-              video: model.modalities?.input?.includes("video") ?? existingModel?.capabilities.input.video ?? false,
-              pdf: model.modalities?.input?.includes("pdf") ?? existingModel?.capabilities.input.pdf ?? false,
-            },
-            output: {
-              text: model.modalities?.output?.includes("text") ?? existingModel?.capabilities.output.text ?? true,
-              audio: model.modalities?.output?.includes("audio") ?? existingModel?.capabilities.output.audio ?? false,
-              image: model.modalities?.output?.includes("image") ?? existingModel?.capabilities.output.image ?? false,
-              video: model.modalities?.output?.includes("video") ?? existingModel?.capabilities.output.video ?? false,
-              pdf: model.modalities?.output?.includes("pdf") ?? existingModel?.capabilities.output.pdf ?? false,
-            },
-            interleaved: model.interleaved ?? false,
-          },
-          cost: {
-            input: model?.cost?.input ?? existingModel?.cost?.input ?? 0,
-            output: model?.cost?.output ?? existingModel?.cost?.output ?? 0,
-            cache: {
-              read: model?.cost?.cache_read ?? existingModel?.cost?.cache.read ?? 0,
-              write: model?.cost?.cache_write ?? existingModel?.cost?.cache.write ?? 0,
-            },
-          },
-          options: mergeDeep(existingModel?.options ?? {}, model.options ?? {}),
-          limit: {
-            context: model.limit?.context ?? existingModel?.limit?.context ?? 0,
-            output: model.limit?.output ?? existingModel?.limit?.output ?? 0,
-          },
-          headers: mergeDeep(existingModel?.headers ?? {}, model.headers ?? {}),
-          family: model.family ?? existingModel?.family ?? "",
-          release_date: model.release_date ?? existingModel?.release_date ?? "",
-          variants: {},
-        }
-        const merged = mergeDeep(ProviderTransform.variants(parsedModel), model.variants ?? {})
-        parsedModel.variants = mapValues(
-          pickBy(merged, (v) => !v.disabled),
-          (v) => omit(v, ["disabled"]),
-        )
-        parsed.models[modelID] = parsedModel
-      }
-      database[providerID] = parsed
     }
 
     // load env
     const env = Env.all()
-    for (const [providerID, provider] of Object.entries(database)) {
+    for (const [providerID, provider] of Object.entries(providers)) {
       if (disabled.has(providerID)) continue
       const apiKey = provider.env.map((item) => env[item]).find(Boolean)
       if (!apiKey) continue
@@ -814,6 +734,7 @@ export namespace Provider {
 
     // load apikeys
     for (const [providerID, provider] of Object.entries(await Auth.all())) {
+      if (!providers[providerID]) continue
       if (disabled.has(providerID)) continue
       if (provider.type === "api") {
         mergeProvider(providerID, {
@@ -885,15 +806,6 @@ export namespace Provider {
           options: result.options,
         })
       }
-    }
-
-    // load config
-    for (const [providerID, provider] of configProviders) {
-      const partial: Partial<Info> = { source: "config" }
-      if (provider.env) partial.env = provider.env
-      if (provider.name) partial.name = provider.name
-      if (provider.options) partial.options = provider.options
-      mergeProvider(providerID, partial)
     }
 
     for (const [providerID, provider] of Object.entries(providers)) {

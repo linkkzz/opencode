@@ -2,10 +2,10 @@ import type { APICallError, ModelMessage } from "ai"
 import { unique } from "remeda"
 import type { JSONSchema } from "zod/v4/core"
 import type { Provider } from "./provider"
-import type { ModelsDev } from "./models"
+import type { Models } from "./models"
 import { iife } from "@/util/iife"
 
-type Modality = NonNullable<ModelsDev.Model["modalities"]>["input"][number]
+type Modality = NonNullable<Models.Model["modalities"]>["input"][number]
 
 function mimeToModality(mime: string): Modality | undefined {
   if (mime.startsWith("image/")) return "image"

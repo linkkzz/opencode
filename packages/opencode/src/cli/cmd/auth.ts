@@ -2,7 +2,7 @@ import { Auth } from "../../auth"
 import { cmd } from "./cmd"
 import * as prompts from "@clack/prompts"
 import { UI } from "../ui"
-import { ModelsDev } from "../../provider/models"
+import { Models } from "../../provider/models"
 import { map, pipe, sortBy, values } from "remeda"
 import path from "path"
 import os from "os"
@@ -178,7 +178,7 @@ export const AuthListCommand = cmd({
     const displayPath = authPath.startsWith(homedir) ? authPath.replace(homedir, "~") : authPath
     prompts.intro(`Credentials ${UI.Style.TEXT_DIM}${displayPath}`)
     const results = Object.entries(await Auth.all())
-    const database = await ModelsDev.get()
+    const database = await Models.get()
 
     for (const [providerID, result] of results) {
       const name = database[providerID]?.name || providerID
@@ -251,14 +251,14 @@ export const AuthLoginCommand = cmd({
           prompts.outro("Done")
           return
         }
-        await ModelsDev.refresh().catch(() => {})
+        await Models.refresh().catch(() => {})
 
         const config = await Config.get()
 
         const disabled = new Set(config.disabled_providers ?? [])
         const enabled = config.enabled_providers ? new Set(config.enabled_providers) : undefined
 
-        const providers = await ModelsDev.get().then((x) => {
+        const providers = await Models.get().then((x) => {
           const filtered: Record<string, (typeof x)[string]> = {}
           for (const [key, value] of Object.entries(x)) {
             if ((enabled ? enabled.has(key) : true) && !disabled.has(key)) {
@@ -385,7 +385,7 @@ export const AuthLogoutCommand = cmd({
       prompts.log.error("No credentials found")
       return
     }
-    const database = await ModelsDev.get()
+    const database = await Models.get()
     const providerID = await prompts.select({
       message: "Select provider",
       options: credentials.map(([key, value]) => ({

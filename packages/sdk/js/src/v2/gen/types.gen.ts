@@ -4,20 +4,6 @@ export type ClientOptions = {
   baseUrl: `${string}://${string}` | (string & {})
 }
 
-export type EventInstallationUpdated = {
-  type: "installation.updated"
-  properties: {
-    version: string
-  }
-}
-
-export type EventInstallationUpdateAvailable = {
-  type: "installation.update-available"
-  properties: {
-    version: string
-  }
-}
-
 export type Project = {
   id: string
   worktree: string
@@ -40,6 +26,20 @@ export type EventProjectUpdated = {
   properties: Project
 }
 
+export type EventInstallationUpdated = {
+  type: "installation.updated"
+  properties: {
+    version: string
+  }
+}
+
+export type EventInstallationUpdateAvailable = {
+  type: "installation.update-available"
+  properties: {
+    version: string
+  }
+}
+
 export type EventServerInstanceDisposed = {
   type: "server.instance.disposed"
   properties: {
@@ -47,11 +47,10 @@ export type EventServerInstanceDisposed = {
   }
 }
 
-export type EventLspClientDiagnostics = {
-  type: "lsp.client.diagnostics"
+export type EventFileEdited = {
+  type: "file.edited"
   properties: {
-    serverID: string
-    path: string
+    file: string
   }
 }
 
@@ -59,13 +58,6 @@ export type EventLspUpdated = {
   type: "lsp.updated"
   properties: {
     [key: string]: unknown
-  }
-}
-
-export type EventFileEdited = {
-  type: "file.edited"
-  properties: {
-    file: string
   }
 }
 
@@ -633,14 +625,6 @@ export type EventTodoUpdated = {
   }
 }
 
-export type EventFileWatcherUpdated = {
-  type: "file.watcher.updated"
-  properties: {
-    file: string
-    event: "add" | "change" | "unlink"
-  }
-}
-
 export type EventTuiPromptAppend = {
   type: "tui.prompt.append"
   properties: {
@@ -860,13 +844,12 @@ export type EventServerConnected = {
 }
 
 export type Event =
+  | EventProjectUpdated
   | EventInstallationUpdated
   | EventInstallationUpdateAvailable
-  | EventProjectUpdated
   | EventServerInstanceDisposed
-  | EventLspClientDiagnostics
-  | EventLspUpdated
   | EventFileEdited
+  | EventLspUpdated
   | EventMessageUpdated
   | EventMessageRemoved
   | EventMessagePartUpdated
@@ -880,7 +863,6 @@ export type Event =
   | EventQuestionRejected
   | EventSessionCompacted
   | EventTodoUpdated
-  | EventFileWatcherUpdated
   | EventTuiPromptAppend
   | EventTuiCommandExecute
   | EventTuiToastShow
@@ -2092,13 +2074,6 @@ export type Agent = {
     [key: string]: unknown
   }
   steps?: number
-}
-
-export type LspStatus = {
-  id: string
-  name: string
-  root: string
-  status: "connected" | "error"
 }
 
 export type FormatterStatus = {
@@ -4734,24 +4709,6 @@ export type AppSkillsResponses = {
 }
 
 export type AppSkillsResponse = AppSkillsResponses[keyof AppSkillsResponses]
-
-export type LspStatusData = {
-  body?: never
-  path?: never
-  query?: {
-    directory?: string
-  }
-  url: "/lsp"
-}
-
-export type LspStatusResponses = {
-  /**
-   * LSP server status
-   */
-  200: Array<LspStatus>
-}
-
-export type LspStatusResponse = LspStatusResponses[keyof LspStatusResponses]
 
 export type FormatterStatusData = {
   body?: never

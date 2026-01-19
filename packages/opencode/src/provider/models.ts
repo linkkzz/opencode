@@ -2,13 +2,30 @@ import { Global } from "../global"
 import { Log } from "../util/log"
 import path from "path"
 import z from "zod"
-import { data } from "./models-macro" with { type: "macro" }
-import { Installation } from "../installation"
-import { Flag } from "../flag/flag"
 
-export namespace ModelsDev {
-  const log = Log.create({ service: "models.dev" })
+export namespace Models {
+  const log = Log.create({ service: "models" })
   const filepath = path.join(Global.Path.cache, "models.json")
+
+  const USER_API_URL = "http://localhost:8000/api/models?scope=cloudmodel"
+
+  interface UserAPIModel {
+    name: string
+    model_id: string
+    provider: string
+    api_base_url: string
+    model_type: string
+    context_window: string
+    input_price: number
+    output_price: number
+    is_active: boolean
+    created_at?: string
+  }
+
+  interface UserAPIResponse {
+    models: UserAPIModel[]
+    total: number
+  }
 
   export const Model = z.object({
     id: z.string(),
@@ -76,37 +93,119 @@ export namespace ModelsDev {
 
   export type Provider = z.infer<typeof Provider>
 
+  function parseContextWindow(value: string): number {
+    const str = value.toLowerCase().trim()
+    const match = str.match(/^(\d+)([kkm]?b?)?$/)
+    if (!match) return 128000
+
+    const num = parseInt(match[1], 10)
+    const suffix = match[2] || ""
+
+    if (suffix === "k" || suffix === "kb") return num * 1000
+    if (suffix === "m" || suffix === "mb") return num * 1000 * 1000
+    return num
+  }
+
+  async function fromUserAPI(response: UserAPIResponse): Promise<Record<string, Provider>> {
+    const result: Record<string, Provider> = {}
+
+    const grouped = new Map<string, UserAPIModel[]>()
+
+    for (const model of response.models) {
+      if (!model.is_active) continue
+
+      if (!grouped.has(model.provider)) {
+        grouped.set(model.provider, [])
+      }
+      grouped.get(model.provider)!.push(model)
+    }
+
+    for (const [providerID, models] of grouped) {
+      const firstModel = models[0]
+
+      const modelsRecord: Record<string, Model> = {}
+      for (const m of models) {
+        const contextWindow = parseContextWindow(m.context_window)
+        const releaseDate = m.created_at?.split("T")[0] || new Date().toISOString().split("T")[0]
+        const family = m.model_id.split("-")[0]
+
+        modelsRecord[m.model_id] = {
+          id: m.model_id,
+          name: m.name,
+          family: family,
+          release_date: releaseDate,
+          attachment: false,
+          reasoning: false,
+          temperature: true,
+          tool_call: true,
+          interleaved: undefined,
+          cost: {
+            input: 0,
+            output: 0,
+            cache_read: 0,
+            cache_write: 0,
+          },
+          limit: {
+            context: contextWindow,
+            input: undefined,
+            output: contextWindow,
+          },
+          modalities: {
+            input: ["text"],
+            output: ["text"],
+          },
+          options: {},
+          headers: {},
+          provider: {
+            npm: "@ai-sdk/openai-compatible",
+          },
+          variants: {},
+        }
+      }
+
+      result[providerID] = {
+        id: providerID,
+        name: providerID,
+        api: firstModel.api_base_url,
+        npm: "@ai-sdk/openai-compatible",
+        env: [],
+        models: modelsRecord,
+      }
+    }
+
+    return result
+  }
+
   export async function get() {
     refresh()
     const file = Bun.file(filepath)
-    const result = await file.json().catch(() => {})
-    if (result) return result as Record<string, Provider>
-    if (typeof data === "function") {
-      const json = await data()
-      return JSON.parse(json) as Record<string, Provider>
+
+    const cached = await file.json().catch(() => {})
+    if (cached) return cached as Record<string, Provider>
+
+    const response = await fetch(USER_API_URL, { signal: AbortSignal.timeout(10 * 1000) })
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`)
     }
-    const json = await fetch("https://models.dev/api.json").then((x) => x.text())
-    return JSON.parse(json) as Record<string, Provider>
+
+    const data: UserAPIResponse = await response.json()
+    return fromUserAPI(data)
   }
 
   export async function refresh() {
-    if (Flag.OPENCODE_DISABLE_MODELS_FETCH) return
     const file = Bun.file(filepath)
-    log.info("refreshing", {
-      file,
-    })
-    const result = await fetch("https://models.dev/api.json", {
-      headers: {
-        "User-Agent": Installation.USER_AGENT,
-      },
-      signal: AbortSignal.timeout(10 * 1000),
-    }).catch((e) => {
-      log.error("Failed to fetch models.dev", {
-        error: e,
-      })
-    })
-    if (result && result.ok) await Bun.write(file, await result.text())
+
+    const response = await fetch(USER_API_URL, { signal: AbortSignal.timeout(10 * 1000) })
+
+    if (!response.ok) {
+      throw new Error(`Failed to refresh models: ${response.status} ${response.statusText}`)
+    }
+
+    const data: UserAPIResponse = await response.json()
+    const converted = await fromUserAPI(data)
+    await Bun.write(file, JSON.stringify(converted, null, 2))
   }
 }
 
-setInterval(() => ModelsDev.refresh(), 60 * 1000 * 60).unref()
+setInterval(() => Models.refresh(), 60 * 1000 * 60).unref()
