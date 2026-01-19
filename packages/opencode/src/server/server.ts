@@ -1,3 +1,5 @@
+import path from "node:path"
+import os from "node:os"
 import { BusEvent } from "@/bus/bus-event"
 import { Bus } from "@/bus"
 import { Log } from "../util/log"
@@ -130,6 +132,9 @@ export namespace Server {
           let directory = c.req.query("directory") || c.req.header("x-opencode-directory") || process.cwd()
           try {
             directory = decodeURIComponent(directory)
+            if (directory.startsWith("~")) {
+              directory = path.join(os.homedir(), directory.slice(1) || "")
+            }
           } catch {
             // fallback to original value
           }

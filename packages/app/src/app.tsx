@@ -1,5 +1,5 @@
 import "@/index.css"
-import { ErrorBoundary, Show, lazy, type ParentProps } from "solid-js"
+import { ErrorBoundary, Show, lazy, onMount, type ParentProps } from "solid-js"
 import { Router, Route, Navigate } from "@solidjs/router"
 import { MetaProvider } from "@solidjs/meta"
 import { Font } from "@opencode-ai/ui/font"
@@ -23,6 +23,7 @@ import { CommandProvider } from "@/context/command"
 import { Logo } from "@opencode-ai/ui/logo"
 import Layout from "@/pages/layout"
 import DirectoryLayout from "@/pages/directory-layout"
+import { base64Encode } from "@opencode-ai/util/encode"
 import { ErrorPage } from "./pages/error"
 import { iife } from "@opencode-ai/util/iife"
 import { Suspense } from "solid-js"
@@ -53,6 +54,17 @@ export function AppBaseProviders(props: ParentProps) {
       </ThemeProvider>
     </MetaProvider>
   )
+}
+
+function AutoNavigateToHome() {
+  onMount(() => {
+    if (!location.pathname.match(/^\/[^\/]/)) {
+      const homePath = "~"
+      const encoded = base64Encode(homePath)
+      location.href = `/${encoded}/session`
+    }
+  })
+  return null
 }
 
 function ServerKey(props: ParentProps) {
@@ -92,6 +104,7 @@ export function AppInterface(props: { defaultUrl?: string }) {
                 </PermissionProvider>
               )}
             >
+              <AutoNavigateToHome />
               <Route path="/" component={() => null} />
               <Route path="/:dir" component={DirectoryLayout}>
                 <Route path="/" component={() => <Navigate href="session" />} />
