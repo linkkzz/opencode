@@ -62,8 +62,6 @@ const ACCEPTED_FILE_TYPES = [...ACCEPTED_IMAGE_TYPES, "application/pdf"]
 interface PromptInputProps {
   class?: string
   ref?: (el: HTMLDivElement) => void
-  newSessionWorktree?: string
-  onNewSessionWorktreeReset?: () => void
 }
 
 const PLACEHOLDERS = [
@@ -1007,52 +1005,9 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     setStore("historyIndex", -1)
     setStore("savedPrompt", null)
 
-    const projectDirectory = sdk.directory
+    const sessionDirectory = sdk.directory
     const isNewSession = !params.id
-    const worktreeSelection = props.newSessionWorktree ?? "main"
-
-    let sessionDirectory = projectDirectory
-    let client = sdk.client
-
-    if (isNewSession) {
-      if (worktreeSelection === "create") {
-        const createdWorktree = await client.worktree
-          .create({ directory: projectDirectory })
-          .then((x) => x.data)
-          .catch((err) => {
-            showToast({
-              title: "Failed to create worktree",
-              description: errorMessage(err),
-            })
-            return undefined
-          })
-
-        if (!createdWorktree?.directory) {
-          showToast({
-            title: "Failed to create worktree",
-            description: "Request failed",
-          })
-          return
-        }
-        sessionDirectory = createdWorktree.directory
-      }
-
-      if (worktreeSelection !== "main" && worktreeSelection !== "create") {
-        sessionDirectory = worktreeSelection
-      }
-
-      if (sessionDirectory !== projectDirectory) {
-        client = createOpencodeClient({
-          baseUrl: sdk.url,
-          fetch: platform.fetch,
-          directory: sessionDirectory,
-          throwOnError: true,
-        })
-        globalSync.child(sessionDirectory)
-      }
-
-      props.onNewSessionWorktreeReset?.()
-    }
+    const client = sdk.client
 
     let session = info()
     if (!session && isNewSession) {
@@ -1249,7 +1204,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       model,
     }
 
-    const setSyncStore = sessionDirectory === projectDirectory ? sync.set : globalSync.child(sessionDirectory)[1]
+    const setSyncStore = sync.set
 
     const addOptimisticMessage = () => {
       setSyncStore(

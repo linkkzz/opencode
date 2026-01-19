@@ -167,7 +167,6 @@ export default function Page() {
   const sdk = useSDK()
   const prompt = usePrompt()
   const permission = usePermission()
-  console.log("[Session] params.dir:", params.dir)
   const sessionKey = createMemo(() => `${params.dir}${params.id ? "/" + params.id : ""}`)
   const tabs = createMemo(() => layout.tabs(sessionKey()))
   const view = createMemo(() => layout.view(sessionKey()))
@@ -313,7 +312,6 @@ export default function Page() {
     messageId: undefined as string | undefined,
     turnStart: 0,
     mobileTab: "session" as "session" | "review",
-    newSessionWorktree: "main",
     promptHeight: 0,
   })
 
@@ -324,13 +322,6 @@ export default function Page() {
     if (start >= msgs.length) return emptyUserMessages
     return msgs.slice(start)
   }, emptyUserMessages)
-
-  const newSessionWorktree = createMemo(() => {
-    if (store.newSessionWorktree === "create") return "create"
-    const project = sync.project
-    if (project && sync.data.path.directory !== project.worktree) return sync.data.path.directory
-    return "main"
-  })
 
   const activeMessage = createMemo(() => {
     if (!store.messageId) return lastUserMessage()
@@ -1280,23 +1271,7 @@ export default function Page() {
                 </Show>
               </Match>
               <Match when={true}>
-                <NewSessionView
-                  worktree={newSessionWorktree()}
-                  onWorktreeChange={(value) => {
-                    if (value === "create") {
-                      setStore("newSessionWorktree", value)
-                      return
-                    }
-
-                    setStore("newSessionWorktree", "main")
-
-                    const target = value === "main" ? sync.project?.worktree : value
-                    if (!target) return
-                    if (target === sync.data.path.directory) return
-                    layout.projects.open(target)
-                    navigate(`/${base64Encode(target)}/session`)
-                  }}
-                />
+                <NewSessionView />
               </Match>
             </Switch>
           </div>
@@ -1324,8 +1299,6 @@ export default function Page() {
                   ref={(el) => {
                     inputRef = el
                   }}
-                  newSessionWorktree={newSessionWorktree()}
-                  onNewSessionWorktreeReset={() => setStore("newSessionWorktree", "main")}
                 />
               </Show>
             </div>

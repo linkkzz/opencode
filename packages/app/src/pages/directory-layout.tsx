@@ -12,13 +12,7 @@ import type { QuestionAnswer } from "@opencode-ai/sdk/v2"
 export default function Layout(props: ParentProps) {
   const params = useParams()
   const navigate = useNavigate()
-  const directory = createMemo(() => {
-    console.log("[DirLayout] params.dir:", params.dir)
-    const decoded = base64Decode(params.dir!)
-    console.log("[DirLayout] decoded:", decoded)
-    console.log("[DirLayout] final directory:", decoded)
-    return decoded
-  })
+  const directory = createMemo(() => base64Decode(params.dir!))
   return (
     <Show when={params.dir} keyed>
       <SDKProvider directory={directory()}>

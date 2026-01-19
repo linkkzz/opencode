@@ -92,37 +92,22 @@ export function AppInterface(props: { defaultUrl?: string }) {
                 </PermissionProvider>
               )}
             >
-              <Route
-                path="/"
-                component={() => {
-                  console.log("[Route] Root route matched, path:", location.pathname)
-                  return null
-                }}
-              />
-              <Route
-                path="/:dir"
-                component={(props) => {
-                  console.log("[Route] :dir route matched, params:", props.params)
-                  return <DirectoryLayout {...props} />
-                }}
-              >
+              <Route path="/" component={() => null} />
+              <Route path="/:dir" component={DirectoryLayout}>
                 <Route path="/" component={() => <Navigate href="session" />} />
                 <Route
                   path="/session/:id?"
-                  component={(props) => {
-                    console.log("[Route] session route matched, params:", props.params)
-                    return (
-                      <TerminalProvider>
-                        <FileProvider>
-                          <PromptProvider>
-                            <Suspense fallback={<Loading />}>
-                              <Session />
-                            </Suspense>
-                          </PromptProvider>
-                        </FileProvider>
-                      </TerminalProvider>
-                    )
-                  }}
+                  component={() => (
+                    <TerminalProvider>
+                      <FileProvider>
+                        <PromptProvider>
+                          <Suspense fallback={<Loading />}>
+                            <Session />
+                          </Suspense>
+                        </PromptProvider>
+                      </FileProvider>
+                    </TerminalProvider>
+                  )}
                 />
               </Route>
             </Router>
