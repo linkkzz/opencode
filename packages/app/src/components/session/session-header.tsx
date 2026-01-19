@@ -175,7 +175,7 @@ export function SessionHeader() {
                 <Show when={currentSession()?.summary?.files}>
                   <TooltipKeybind
                     class="hidden md:block shrink-0"
-                    title="Toggle review"
+                    title="切换预览"
                     keybind={command.keybind("review.toggle")}
                   >
                     <Button
@@ -205,7 +205,7 @@ export function SessionHeader() {
                 </Show>
                 <TooltipKeybind
                   class="hidden md:block shrink-0"
-                  title="Toggle terminal"
+                  title="切换终端"
                   keybind={command.keybind("terminal.toggle")}
                 >
                   <Button
@@ -236,14 +236,14 @@ export function SessionHeader() {
               <Show when={shareEnabled() && currentSession()}>
                 <div class="flex items-center">
                   <Popover
-                    title="Publish on web"
+                    title="发布到网页"
                     description={
                       shareUrl()
                         ? "This session is public on the web. It is accessible to anyone with the link."
                         : "Share session publicly on the web. It will be accessible to anyone with the link."
                     }
                     trigger={
-                      <Tooltip class="shrink-0" value="Share session">
+                      <Tooltip class="shrink-0" value="分享对话">
                         <Button variant="secondary" classList={{ "rounded-r-none": shareUrl() !== undefined }}>
                           Share
                         </Button>
@@ -294,7 +294,7 @@ export function SessionHeader() {
                     </div>
                   </Popover>
                   <Show when={shareUrl()}>
-                    <Tooltip value={state.copied ? "Copied" : "Copy link"} placement="top" gutter={8}>
+                    <Tooltip value={state.copied ? "已复制" : "复制链接"} placement="top" gutter={8}>
                       <IconButton
                         icon={state.copied ? "check" : "copy"}
                         variant="secondary"

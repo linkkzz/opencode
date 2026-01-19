@@ -410,7 +410,7 @@ export default function Page() {
   command.register(() => [
     {
       id: "session.new",
-      title: "New session",
+      title: "新建对话",
       category: "Session",
       keybind: "mod+shift+s",
       slash: "new",
@@ -419,7 +419,7 @@ export default function Page() {
     {
       id: "file.open",
       title: "Open file",
-      description: "Search files and commands",
+      description: "搜索文件和命令",
       category: "File",
       keybind: "mod+p",
       slash: "open",
@@ -484,7 +484,7 @@ export default function Page() {
     },
     {
       id: "model.choose",
-      title: "Choose model",
+      title: "选择模型",
       description: "Select a different model",
       category: "Model",
       keybind: "mod+'",
@@ -502,11 +502,11 @@ export default function Page() {
     },
     {
       id: "agent.cycle",
-      title: "Cycle agent",
-      description: "Switch to the next agent",
+      title: "切换代理",
       category: "Agent",
-      keybind: "mod+.",
+      keybind: "mod+a",
       slash: "agent",
+      disabled: !params.id || local.agent.list().length <= 1,
       onSelect: () => local.agent.move(1),
     },
     {
@@ -533,10 +533,7 @@ export default function Page() {
     },
     {
       id: "permissions.autoaccept",
-      title:
-        params.id && permission.isAutoAccepting(params.id, sdk.directory)
-          ? "Stop auto-accepting edits"
-          : "Auto-accept edits",
+      title: params.id && permission.isAutoAccepting(params.id, sdk.directory) ? "停止自动接受编辑" : "自动接受编辑",
       category: "Permissions",
       keybind: "mod+shift+a",
       disabled: !params.id || !permission.permissionsEnabled(),
@@ -545,9 +542,7 @@ export default function Page() {
         if (!sessionID) return
         permission.toggleAutoAccept(sessionID, sdk.directory)
         showToast({
-          title: permission.isAutoAccepting(sessionID, sdk.directory)
-            ? "Auto-accepting edits"
-            : "Stopped auto-accepting edits",
+          title: permission.isAutoAccepting(sessionID, sdk.directory) ? "自动接受编辑中" : "已停止自动接受编辑",
           description: permission.isAutoAccepting(sessionID, sdk.directory)
             ? "Edit and write permissions will be automatically approved"
             : "Edit and write permissions will require approval",
@@ -639,7 +634,7 @@ export default function Page() {
     },
     {
       id: "session.fork",
-      title: "Fork from message",
+      title: "消息分支",
       description: "Create a new session from a previous message",
       category: "Session",
       slash: "fork",
@@ -650,8 +645,8 @@ export default function Page() {
       ? [
           {
             id: "session.share",
-            title: "Share session",
-            description: "Share this session and copy the URL to clipboard",
+            title: "分享对话",
+            description: "分享此对话并复制链接到剪贴板",
             category: "Session",
             slash: "share",
             disabled: !params.id || !!info()?.share?.url,
@@ -670,7 +665,7 @@ export default function Page() {
                 .then(() =>
                   showToast({
                     title: "Session shared",
-                    description: "Share URL copied to clipboard!",
+                    description: "分享链接已复制到剪贴板！",
                     variant: "success",
                   }),
                 )
@@ -1213,7 +1208,7 @@ export default function Page() {
                                   sync.session.history.loadMore(id)
                                 }}
                               >
-                                {historyLoading() ? "Loading earlier messages..." : "Load earlier messages"}
+                                {historyLoading() ? "加载较早消息中..." : "加载较早消息"}
                               </Button>
                             </div>
                           </Show>

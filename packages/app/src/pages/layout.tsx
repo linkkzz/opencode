@@ -299,7 +299,7 @@ export default function Layout(props: ParentProps) {
       const session = store.session.find((s) => s.id === props.sessionID)
       const sessionKey = `${directory}:${props.sessionID}`
 
-      const sessionTitle = session?.title ?? "New session"
+      const sessionTitle = session?.title ?? "新建对话"
       const projectName = getFilename(directory)
       const description = config.description(sessionTitle, projectName)
       const href = `/${base64Encode(directory)}/session/${props.sessionID}`
@@ -721,7 +721,7 @@ export default function Layout(props: ParentProps) {
     const commands: CommandOption[] = [
       {
         id: "sidebar.toggle",
-        title: "Toggle sidebar",
+        title: "切换侧边栏",
         category: "View",
         keybind: "mod+b",
         onSelect: () => layout.sidebar.toggle(),
@@ -754,7 +754,7 @@ export default function Layout(props: ParentProps) {
       },
       {
         id: "session.archive",
-        title: "Archive session",
+        title: "归档对话",
         category: "Session",
         keybind: "mod+shift+backspace",
         disabled: !params.dir || !params.id,
@@ -1104,7 +1104,7 @@ export default function Layout(props: ParentProps) {
         >
           <TooltipKeybind
             placement={props.mobile ? "bottom" : "right"}
-            title="Archive session"
+            title="归档对话"
             keybind={command.keybind("session.archive")}
             gutter={8}
           >
@@ -1241,7 +1241,7 @@ export default function Layout(props: ParentProps) {
                 <TooltipKeybind
                   class="pointer-events-auto"
                   placement="right"
-                  title="New session"
+                  title="新建对话"
                   keybind={command.keybind("session.new")}
                 >
                   <IconButton
@@ -1264,7 +1264,7 @@ export default function Layout(props: ParentProps) {
                 icon="edit"
                 class="hidden _flex w-full text-left justify-start text-text-base rounded-md px-3"
               >
-                New session
+                新建对话
               </Button>
               <Show when={loading()}>
                 <SessionSkeleton />
@@ -1517,7 +1517,7 @@ export default function Layout(props: ParentProps) {
 
             <div class="py-4 px-3">
               <Button size="large" icon="plus-small" class="w-full" onClick={() => navigate(`/${slug()}/session`)}>
-                New session
+                新建对话
               </Button>
             </div>
 

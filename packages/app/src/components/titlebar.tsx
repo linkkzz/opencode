@@ -93,7 +93,7 @@ export function Titlebar() {
         <TooltipKeybind
           class={web() ? "hidden xl:flex shrink-0 ml-14" : "hidden xl:flex shrink-0"}
           placement="bottom"
-          title="Toggle sidebar"
+          title="切换侧边栏"
           keybind={command.keybind("sidebar.toggle")}
         >
           <IconButton
