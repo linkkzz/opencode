@@ -13,7 +13,11 @@ export default function Layout(props: ParentProps) {
   const params = useParams()
   const navigate = useNavigate()
   const directory = createMemo(() => {
-    return base64Decode(params.dir!)
+    console.log("[DirLayout] params.dir:", params.dir)
+    const decoded = base64Decode(params.dir!)
+    console.log("[DirLayout] decoded:", decoded)
+    console.log("[DirLayout] final directory:", decoded)
+    return decoded
   })
   return (
     <Show when={params.dir} keyed>

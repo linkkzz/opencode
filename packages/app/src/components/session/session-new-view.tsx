@@ -23,7 +23,13 @@ export function NewSessionView(props: NewSessionViewProps) {
     if (options().includes(selection)) return selection
     return MAIN_WORKTREE
   })
-  const projectRoot = createMemo(() => sync.project?.worktree ?? sync.data.path.directory)
+  const projectRoot = createMemo(() => {
+    const root = sync.data.path.directory ?? sync.project?.worktree
+    console.log("[NewSessionView] projectRoot():", root)
+    console.log("[NewSessionView] sync.project:", sync.project)
+    console.log("[NewSessionView] sync.data.path.directory:", sync.data.path.directory)
+    return root
+  })
   const isWorktree = createMemo(() => {
     const project = sync.project
     if (!project) return false

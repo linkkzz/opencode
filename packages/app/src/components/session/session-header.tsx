@@ -38,8 +38,11 @@ export function SessionHeader() {
   })
   const name = createMemo(() => {
     const current = project()
-    if (current) return current.name || getFilename(current.worktree)
-    return getFilename(projectDirectory())
+    const filename = current ? current.name || getFilename(current.worktree) : getFilename(projectDirectory())
+    console.log("[SessionHeader] projectDirectory():", projectDirectory())
+    console.log("[SessionHeader] project():", project())
+    console.log("[SessionHeader] name():", filename)
+    return filename
   })
   const hotkey = createMemo(() => command.keybind("file.open"))
 

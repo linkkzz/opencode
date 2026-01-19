@@ -322,12 +322,16 @@ onMount(() => {
     if (currentPath === "/" || currentPath === "") {
       try {
         const homedir = await invoke<string>("get_home_dir")
+        console.log("[Desktop Redirect] homedir:", homedir)
         const encodedDir = base64Encode(homedir)
+        console.log("[Desktop Redirect] encodedDir:", encodedDir)
         const targetPath = `/${encodedDir}/session`
+        console.log("[Desktop Redirect] targetPath:", targetPath)
         window.location.href = targetPath
         sessionStorage.setItem(storageKey, "true")
       } catch (e) {
         // If it fails, mark as redirected to avoid infinite loops
+        console.log("[Desktop Redirect] error:", e)
         sessionStorage.setItem(storageKey, "true")
       }
     }
