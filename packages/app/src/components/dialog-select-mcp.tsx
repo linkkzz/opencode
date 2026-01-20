@@ -1,14 +1,20 @@
 import { Component, createMemo, createSignal, Show } from "solid-js"
 import { useSync } from "@/context/sync"
 import { useSDK } from "@/context/sdk"
-import { Dialog } from "@opencode-ai/ui/dialog"
+import { useDialog } from "@opencode-ai/ui/context/dialog"
+import { Dialog as DialogComponent } from "@opencode-ai/ui/dialog"
 import { List } from "@opencode-ai/ui/list"
 import { Switch } from "@opencode-ai/ui/switch"
+import { Button } from "@opencode-ai/ui/button"
+import { Icon } from "@opencode-ai/ui/icon"
+import { DialogAddMcp } from "@/components/dialog-add-mcp"
 
 export const DialogSelectMcp: Component = () => {
   const sync = useSync()
   const sdk = useSDK()
+  const dialog = useDialog()
   const [loading, setLoading] = createSignal<string | null>(null)
+  const [showAdd, setShowAdd] = createSignal(false)
 
   const items = createMemo(() =>
     Object.entries(sync.data.mcp ?? {})
@@ -34,10 +40,10 @@ export const DialogSelectMcp: Component = () => {
   const totalCount = createMemo(() => items().length)
 
   return (
-    <Dialog title="MCPs" description={`${enabledCount()} of ${totalCount()} enabled`}>
+    <DialogComponent title="MCP管理" description={`${enabledCount()}/${totalCount()} 已启用`}>
       <List
-        search={{ placeholder: "Search", autofocus: true }}
-        emptyMessage="No MCPs configured"
+        search={{ placeholder: "搜索", autofocus: true }}
+        emptyMessage="未配置MCP"
         key={(x) => x?.name ?? ""}
         items={items}
         filterKeys={["name", "status"]}
@@ -60,16 +66,16 @@ export const DialogSelectMcp: Component = () => {
                 <div class="flex items-center gap-2">
                   <span class="truncate">{i.name}</span>
                   <Show when={status() === "connected"}>
-                    <span class="text-11-regular text-text-weaker">connected</span>
+                    <span class="text-11-regular text-text-weaker">已连接</span>
                   </Show>
                   <Show when={status() === "failed"}>
-                    <span class="text-11-regular text-text-weaker">failed</span>
+                    <span class="text-11-regular text-text-weaker">连接失败</span>
                   </Show>
                   <Show when={status() === "needs_auth"}>
-                    <span class="text-11-regular text-text-weaker">needs auth</span>
+                    <span class="text-11-regular text-text-weaker">需要认证</span>
                   </Show>
                   <Show when={status() === "disabled"}>
-                    <span class="text-11-regular text-text-weaker">disabled</span>
+                    <span class="text-11-regular text-text-weaker">已禁用</span>
                   </Show>
                   <Show when={loading() === i.name}>
                     <span class="text-11-regular text-text-weak">...</span>
@@ -86,6 +92,15 @@ export const DialogSelectMcp: Component = () => {
           )
         }}
       </List>
-    </Dialog>
+      <div class="flex justify-center py-4 border-t border-border-weak-base mt-4">
+        <Button variant="secondary" onClick={() => setShowAdd(true)} class="gap-2">
+          <Icon name="plus-small" />
+          添加MCP
+        </Button>
+      </div>
+      <Show when={showAdd()}>
+        <DialogAddMcp />
+      </Show>
+    </DialogComponent>
   )
 }
