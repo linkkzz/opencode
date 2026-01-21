@@ -22,6 +22,9 @@ bun test packages/opencode/test/tool/read.test.ts
 
 # Run tests with filter pattern
 bun test --t "test name"
+
+# Run tests in watch mode (for some packages)
+bun test --watch
 ```
 
 ### App Package (`packages/app`)

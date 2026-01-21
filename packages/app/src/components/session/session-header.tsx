@@ -1,4 +1,4 @@
-import { createEffect, createMemo, onCleanup, Show } from "solid-js"
+import { createEffect, createMemo, onCleanup, Show, createSignal } from "solid-js"
 import { createStore } from "solid-js/store"
 import { Portal } from "solid-js/web"
 import { useParams } from "@solidjs/router"
@@ -119,8 +119,19 @@ export function SessionHeader() {
     platform.openLink(url)
   }
 
-  const centerMount = createMemo(() => document.getElementById("opencode-titlebar-center"))
-  const rightMount = createMemo(() => document.getElementById("opencode-titlebar-right"))
+  const [centerMount, setCenterMount] = createSignal<HTMLElement | null>(null)
+  const [rightMount, setRightMount] = createSignal<HTMLElement | null>(null)
+
+  createEffect(() => {
+    const centerElement = document.getElementById("opencode-titlebar-center")
+    const rightElement = document.getElementById("opencode-titlebar-right")
+    if (centerElement) {
+      setCenterMount(centerElement)
+    }
+    if (rightElement) {
+      setRightMount(rightElement)
+    }
+  })
 
   return (
     <>
