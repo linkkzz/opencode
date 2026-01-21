@@ -1519,9 +1519,10 @@ export default function Layout(props: ParentProps) {
               <Button
                 size="large"
                 icon="plus-small"
-                class="w-full"
+                variant="ghost"
+                class="w-full border border-border-weak-base rounded-md"
                 onClick={() => navigate(`/${slug()}/session`)}
-                style="padding: 0 8px 0 4px"
+                style="padding: 0 12px 0 2px"
               >
                 新建对话
               </Button>
@@ -1533,6 +1534,22 @@ export default function Layout(props: ParentProps) {
                   {(session) => <SessionItem session={session} slug={slug()} mobile={sidebarProps.mobile} />}
                 </For>
               </nav>
+            </div>
+            <div class="py-3 px-3">
+              <Button
+                size="large"
+                icon="speech-bubble"
+                variant="ghost"
+                class="w-full border border-border-weak-base rounded-md"
+                onClick={() =>
+                  platform.openLink(
+                    "https://applink.feishu.cn/client/chat/open?openId=ou_1873b6277706b9204a6763b4d5eb895b",
+                  )
+                }
+                style="padding: 0 8px 0 4px"
+              >
+                帮助与反馈
+              </Button>
             </div>
           </div>
         </Show>

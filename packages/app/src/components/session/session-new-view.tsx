@@ -16,7 +16,7 @@ export function NewSessionView() {
     >
       <div class="absolute inset-0 pointer-events-none bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px]"></div>
       <div class="relative z-10 flex flex-col gap-4">
-        <div class="text-20-medium text-text-weaker">今天想聊点什么？</div>
+        <div class="text-20-medium text-text-strongest">今天想聊点什么？</div>
         <div class="flex justify-center items-center gap-3">
           <Icon name="folder" size="small" />
           <div class="text-12-medium text-text-weak">
