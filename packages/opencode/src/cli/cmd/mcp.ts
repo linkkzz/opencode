@@ -59,6 +59,7 @@ export const McpCommand = cmd({
       .command(McpAuthCommand)
       .command(McpLogoutCommand)
       .command(McpDebugCommand)
+      .command(McpDeleteCommand)
       .demandCommand(),
   async handler() {},
 })
@@ -749,6 +750,83 @@ export const McpDebugCommand = cmd({
         }
 
         prompts.outro("Debug complete")
+      },
+    })
+  },
+})
+
+export const McpDeleteCommand = cmd({
+  command: "delete [name]",
+  aliases: ["remove", "rm"],
+  describe: "delete an MCP server configuration",
+  builder: (yargs) =>
+    yargs.positional("name", {
+      describe: "name of the MCP server to delete",
+      type: "string",
+    }),
+  async handler(args) {
+    await Instance.provide({
+      directory: process.cwd(),
+      async fn() {
+        UI.empty()
+        prompts.intro("Delete MCP server")
+
+        const config = await Config.get()
+        const mcpServers = config.mcp ?? {}
+
+        const serverNames = Object.keys(mcpServers).filter((key) => isMcpConfigured(mcpServers[key]))
+
+        if (serverNames.length === 0) {
+          prompts.log.warn("No MCP servers configured")
+          prompts.outro("Done")
+          return
+        }
+
+        let serverName = args.name
+        if (!serverName) {
+          const selected = await prompts.select({
+            message: "Select MCP server to delete",
+            options: serverNames.map((name) => {
+              const server = mcpServers[name]
+              const hint = isMcpRemote(server) ? server.url : "command" in server ? server.command.join(" ") : ""
+              return {
+                label: name,
+                value: name,
+                hint,
+              }
+            }),
+          })
+          if (prompts.isCancel(selected)) throw new UI.CancelledError()
+          serverName = selected
+        }
+
+        if (!mcpServers[serverName] || !isMcpConfigured(mcpServers[serverName])) {
+          prompts.log.error(`MCP server not found: ${serverName}`)
+          prompts.outro("Done")
+          return
+        }
+
+        const confirm = await prompts.confirm({
+          message: `Delete MCP server "${serverName}"? This action cannot be undone.`,
+          initialValue: false,
+        })
+        if (prompts.isCancel(confirm) || !confirm) {
+          prompts.outro("Cancelled")
+          return
+        }
+
+        const spinner = prompts.spinner()
+        spinner.start(`Deleting ${serverName}...`)
+
+        try {
+          await MCP.remove(serverName)
+          spinner.stop(`Successfully deleted ${serverName}`)
+        } catch (error) {
+          spinner.stop(`Failed to delete ${serverName}`, 1)
+          prompts.log.error(error instanceof Error ? error.message : String(error))
+        }
+
+        prompts.outro("Done")
       },
     })
   },

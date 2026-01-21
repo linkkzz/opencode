@@ -255,6 +255,7 @@ export namespace MCP {
   }
 
   export async function add(name: string, mcp: Config.Mcp) {
+    await Config.addMcpToGlobalConfig(name, mcp)
     const s = await state()
     const result = await create(name, mcp)
     if (!result) {
@@ -286,6 +287,32 @@ export namespace MCP {
     return {
       status: s.status,
     }
+  }
+
+  export async function remove(name: string): Promise<void> {
+    const s = await state()
+    const log = Log.create({ service: "mcp" })
+
+    log.info("[MCP REMOVE] Starting MCP removal", { name, timestamp: new Date().toISOString() })
+
+    const client = s.clients[name]
+    if (client) {
+      await client.close().catch((error) => {
+        log.error("[MCP REMOVE] Failed to close MCP client", { name, error })
+      })
+      delete s.clients[name]
+      log.info("[MCP REMOVE] Closed and removed MCP client", { name })
+    }
+
+    delete s.status[name]
+    log.info("[MCP REMOVE] Removed MCP from status", { name })
+
+    await Config.removeMcp(name)
+    log.info("[MCP REMOVE] Deletion completed successfully", { name, timestamp: new Date().toISOString() })
+
+    await removeAuth(name).catch((error) => {
+      log.warn("[MCP REMOVE] Failed to remove OAuth credentials", { name, error })
+    })
   }
 
   async function create(key: string, mcp: Config.Mcp) {

@@ -1,5 +1,6 @@
 import { createMemo, Show } from "solid-js"
 import { Button } from "@opencode-ai/ui/button"
+import { Icon } from "@opencode-ai/ui/icon"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useSync } from "@/context/sync"
 import { DialogSelectMcp } from "@/components/dialog-select-mcp"
@@ -17,18 +18,20 @@ export function SessionMcpIndicator() {
     return { enabled, failed, total }
   })
 
+  const hasMcp = () => mcpStats().total > 0
+
   return (
-    <Show when={mcpStats().total > 0}>
-      <Button variant="ghost" onClick={() => dialog.show(() => <DialogSelectMcp />)}>
+    <Button variant="ghost" onClick={() => dialog.show(() => <DialogSelectMcp />)}>
+      <Show when={hasMcp()}>
         <div
           classList={{
-            "size-1.5 rounded-full": true,
+            "size-1.5 rounded-full mr-2": true,
             "bg-icon-critical-base": mcpStats().failed,
             "bg-icon-success-base": !mcpStats().failed && mcpStats().enabled > 0,
           }}
         />
-        <span class="text-12-regular text-text-weak">{mcpStats().enabled} MCP</span>
-      </Button>
-    </Show>
+      </Show>
+      <span class="text-12-regular text-text-weak">{hasMcp() ? `${mcpStats().enabled} MCP` : "MCP"}</span>
+    </Button>
   )
 }

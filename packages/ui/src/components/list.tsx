@@ -175,14 +175,15 @@ export function List<T>(props: ListProps<T> & { ref?: (ref: ListRef) => void }) 
       </Show>
       <div ref={setScrollRef} data-slot="list-scroll">
         <Show
-          when={flat().length > 0}
+          when={flat().length > 0 || grouped.loading}
           fallback={
-            <div data-slot="list-empty-state">
-              <div data-slot="list-message">
-                {props.emptyMessage ?? (grouped.loading ? "Loading" : "No results")} for{" "}
-                <span data-slot="list-filter">&quot;{filter()}&quot;</span>
+            <Show when={filter()}>
+              <div data-slot="list-empty-state">
+                <div data-slot="list-message">
+                  {props.emptyMessage ?? "No results"} for <span data-slot="list-filter">&quot;{filter()}&quot;</span>
+                </div>
               </div>
-            </div>
+            </Show>
           }
         >
           <For each={grouped.latest}>

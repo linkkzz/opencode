@@ -47,6 +47,8 @@ import type {
   McpAuthStartErrors,
   McpAuthStartResponses,
   McpConnectResponses,
+  McpDeleteErrors,
+  McpDeleteResponses,
   McpDisconnectResponses,
   McpLocalConfig,
   McpRemoteConfig,
@@ -2336,6 +2338,36 @@ export class Mcp extends HeyApiClient {
         ...options?.headers,
         ...params.headers,
       },
+    })
+  }
+
+  /**
+   * Delete MCP server
+   *
+   * Delete a Model Context Protocol (MCP) server from the system.
+   */
+  public delete<ThrowOnError extends boolean = false>(
+    parameters: {
+      name: string
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams(
+      [parameters],
+      [
+        {
+          args: [
+            { in: "path", key: "name" },
+            { in: "query", key: "directory" },
+          ],
+        },
+      ],
+    )
+    return (options?.client ?? this.client).delete<McpDeleteResponses, McpDeleteErrors, ThrowOnError>({
+      url: "/mcp/{name}",
+      ...options,
+      ...params,
     })
   }
 

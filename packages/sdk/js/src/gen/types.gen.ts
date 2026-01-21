@@ -3558,6 +3558,26 @@ export type McpDisconnectResponses = {
 
 export type McpDisconnectResponse = McpDisconnectResponses[keyof McpDisconnectResponses]
 
+export type McpRemoveData = {
+  body?: never
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/mcp/{name}"
+}
+
+export type McpRemoveResponses = {
+  /**
+   * MCP server deleted successfully
+   */
+  200: { success: true }
+}
+
+export type McpRemoveResponse = McpRemoveResponses[keyof McpRemoveResponses]
+
 export type LspStatusData = {
   body?: never
   path?: never

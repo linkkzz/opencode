@@ -345,7 +345,6 @@ function createGlobalSync() {
     const [store, setStore] = child(directory)
     switch (event.type) {
       case "server.instance.disposed": {
-        bootstrapInstance(directory)
         break
       }
       case "session.created": {

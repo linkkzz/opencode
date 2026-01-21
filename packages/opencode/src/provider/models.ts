@@ -177,12 +177,6 @@ export namespace Models {
   }
 
   export async function get() {
-    refresh()
-    const file = Bun.file(filepath)
-
-    const cached = await file.json().catch(() => {})
-    if (cached) return cached as Record<string, Provider>
-
     const response = await fetch(USER_API_URL, { signal: AbortSignal.timeout(10 * 1000) })
 
     if (!response.ok) {

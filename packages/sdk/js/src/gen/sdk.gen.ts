@@ -970,6 +970,16 @@ class Mcp extends _HeyApiClient {
     })
   }
 
+  /**
+   * Delete an MCP server
+   */
+  public remove<ThrowOnError extends boolean = false>(options: { name: string }) {
+    return this._client.delete<{ success: true }, unknown, ThrowOnError>({
+      url: "/mcp/{name}",
+      ...options,
+    })
+  }
+
   auth = new Auth({ client: this._client })
 }
 

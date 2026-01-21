@@ -5,6 +5,7 @@ import { MCP } from "../../mcp"
 import { Config } from "../../config/config"
 import { errors } from "../error"
 import { lazy } from "../../util/lazy"
+import { Log } from "../../util/log"
 
 export const McpRoutes = lazy(() =>
   new Hono()
@@ -26,6 +27,13 @@ export const McpRoutes = lazy(() =>
         },
       }),
       async (c) => {
+        const queryParams = c.req.query()
+        const fromConfig = queryParams.fromConfig === "true"
+
+        if (fromConfig) {
+          return c.json(await MCP.statusFromConfigOnly())
+        }
+
         return c.json(await MCP.status())
       },
     )
@@ -58,6 +66,46 @@ export const McpRoutes = lazy(() =>
         const { name, config } = c.req.valid("json")
         const result = await MCP.add(name, config)
         return c.json(result.status)
+      },
+    )
+    .delete(
+      "/:name",
+      describeRoute({
+        summary: "Delete MCP server",
+        description: "Delete a Model Context Protocol (MCP) server from the system.",
+        operationId: "mcp.delete",
+        responses: {
+          200: {
+            description: "MCP server deleted successfully",
+            content: {
+              "application/json": {
+                schema: resolver(z.object({ success: z.literal(true) })),
+              },
+            },
+          },
+          ...errors(404),
+        },
+      }),
+      validator("param", z.object({ name: z.string() })),
+      async (c) => {
+        const { name } = c.req.valid("param")
+        const log = Log.create({ service: "api" })
+
+        log.info("[API MCP DELETE] Receive delete request", { name, timestamp: new Date().toISOString() })
+
+        await MCP.remove(name)
+        log.info("[API MCP DELETE] MCP.remove completed")
+
+        log.info("[API MCP DELETE] Waiting for disposal to complete")
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
+        const cleanStatus = await MCP.status()
+        log.info("[API MCP DELETE] Clean status fetched", {
+          deletedMcp: name,
+          remainingMCPs: Object.keys(cleanStatus),
+        })
+
+        return c.json(cleanStatus)
       },
     )
     .post(

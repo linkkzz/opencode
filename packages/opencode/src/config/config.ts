@@ -1248,4 +1248,88 @@ export namespace Config {
   export async function directories() {
     return state().then((x) => x.directories)
   }
+
+  async function resolveGlobalConfigPath(): Promise<string> {
+    const candidates = [path.join(Global.Path.config, "opencode.jsonc"), path.join(Global.Path.config, "opencode.json")]
+    for (const candidate of candidates) {
+      if (await Bun.file(candidate).exists()) {
+        return candidate
+      }
+    }
+    return candidates[1]
+  }
+
+  async function updateGlobalMcpConfig(
+    updater: (mcp: Record<string, Mcp | { enabled: boolean }>) => void,
+  ): Promise<void> {
+    const configPath = await resolveGlobalConfigPath()
+    const file = Bun.file(configPath)
+
+    let text = "{}"
+    if (await file.exists()) {
+      text = await file.text()
+    }
+
+    const config = await load(text, configPath)
+    config.mcp = config.mcp ?? {}
+
+    updater(config.mcp)
+
+    const log = Log.create({ service: "config" })
+
+    if (Object.keys(config.mcp).length === 0) {
+      delete config.mcp
+      log.info("[CONFIG UPDATE] mcp object removed (empty)")
+    }
+
+    const result = JSON.stringify(config, null, 2)
+    await Bun.write(configPath, result)
+
+    log.info("[CONFIG UPDATE] Config file written", { path: configPath })
+
+    global.reset()
+    await Instance.dispose()
+  }
+
+  export async function addMcpToGlobalConfig(name: string, mcpConfig: Mcp): Promise<void> {
+    await updateGlobalMcpConfig((mcp) => {
+      mcp[name] = mcpConfig
+    })
+  }
+
+  export async function removeMcp(mcpName: string): Promise<void> {
+    const log = Log.create({ service: "config" })
+    log.info("[CONFIG REMOVE] Starting MCP deletion from config", {
+      name: mcpName,
+      timestamp: new Date().toISOString(),
+    })
+
+    await updateGlobalMcpConfig((originalMcp) => {
+      const beforeKeys = Object.keys(originalMcp)
+      log.info("[CONFIG REMOVE] Before deletion", {
+        name: mcpName,
+        allMCPs: beforeKeys,
+        exists: mcpName in originalMcp,
+      })
+
+      if (originalMcp[mcpName]) {
+        delete originalMcp[mcpName]
+        log.info("[CONFIG REMOVE] MCP deleted from config", {
+          name: mcpName,
+          beforeKeys,
+          afterKeys: Object.keys(originalMcp),
+        })
+      } else {
+        log.warn("[CONFIG REMOVE] MCP not found in config", {
+          name: mcpName,
+          availableMCPs: beforeKeys,
+        })
+      }
+    })
+
+    log.info("[CONFIG REMOVE] removeMcp completed", {
+      name: mcpName,
+      timestamp: new Date().toISOString(),
+    })
+  }
 }

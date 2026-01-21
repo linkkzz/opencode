@@ -1867,6 +1867,7 @@ export type Provider = {
   models: {
     [key: string]: Model
   }
+  api?: string
 }
 
 export type ToolIds = Array<string>
@@ -4077,6 +4078,37 @@ export type McpAddResponses = {
 }
 
 export type McpAddResponse = McpAddResponses[keyof McpAddResponses]
+
+export type McpDeleteData = {
+  body?: never
+  path: {
+    name: string
+  }
+  query?: {
+    directory?: string
+  }
+  url: "/mcp/{name}"
+}
+
+export type McpDeleteErrors = {
+  /**
+   * Not found
+   */
+  404: NotFoundError
+}
+
+export type McpDeleteError = McpDeleteErrors[keyof McpDeleteErrors]
+
+export type McpDeleteResponses = {
+  /**
+   * MCP server deleted successfully
+   */
+  200: {
+    success: true
+  }
+}
+
+export type McpDeleteResponse = McpDeleteResponses[keyof McpDeleteResponses]
 
 export type McpAuthRemoveData = {
   body?: never
