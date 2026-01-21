@@ -1516,7 +1516,13 @@ export default function Layout(props: ParentProps) {
             </div>
 
             <div class="py-4 px-3">
-              <Button size="large" icon="plus-small" class="w-full" onClick={() => navigate(`/${slug()}/session`)}>
+              <Button
+                size="large"
+                icon="plus-small"
+                class="w-full"
+                onClick={() => navigate(`/${slug()}/session`)}
+                style="padding: 0 8px 0 4px"
+              >
                 新建对话
               </Button>
             </div>
