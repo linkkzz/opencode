@@ -7,6 +7,7 @@ import { useLayout } from "@/context/layout"
 import { usePlatform } from "@/context/platform"
 import { useCommand } from "@/context/command"
 import { ThemeToggle } from "./theme-toggle"
+import { Logo } from "./logo"
 
 export function Titlebar() {
   const layout = useLayout()
@@ -91,8 +92,11 @@ export function Titlebar() {
             <IconButton icon="menu" variant="ghost" class="size-8 rounded-md" onClick={layout.mobileSidebar.toggle} />
           </div>
         </Show>
+        <div class="hidden xl:flex shrink-0 mr-4">
+          <Logo />
+        </div>
         <TooltipKeybind
-          class={web() ? "hidden xl:flex shrink-0 ml-14" : "hidden xl:flex shrink-0"}
+          class={web() ? "hidden xl:flex shrink-0 ml-2" : "hidden xl:flex shrink-0"}
           placement="bottom"
           title="切换侧边栏"
           keybind={command.keybind("sidebar.toggle")}
