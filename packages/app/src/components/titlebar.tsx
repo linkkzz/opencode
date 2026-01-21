@@ -6,6 +6,7 @@ import { useTheme } from "@opencode-ai/ui/theme"
 import { useLayout } from "@/context/layout"
 import { usePlatform } from "@/context/platform"
 import { useCommand } from "@/context/command"
+import { ThemeToggle } from "./theme-toggle"
 
 export function Titlebar() {
   const layout = useLayout()
@@ -105,7 +106,9 @@ export function Titlebar() {
         </TooltipKeybind>
         <div id="opencode-titlebar-left" class="flex items-center gap-3 min-w-0 px-2" />
         <div class="flex-1 h-full" data-tauri-drag-region />
-        <div id="opencode-titlebar-right" class="flex items-center gap-3 shrink-0" />
+        <div id="opencode-titlebar-right" class="flex items-center gap-3 shrink-0">
+          <ThemeToggle />
+        </div>
         <Show when={reserve()}>
           <div class="w-[120px] h-full shrink-0" data-tauri-drag-region />
         </Show>

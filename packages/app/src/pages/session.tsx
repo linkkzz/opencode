@@ -1154,6 +1154,7 @@ export default function Page() {
                     }
                   >
                     <div class="relative w-full h-full min-w-0">
+                      <div class="absolute inset-0 pointer-events-none z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px]"></div>
                       <Show when={isDesktop()}>
                         <div class="absolute inset-0 pointer-events-none z-10">
                           <SessionMessageRail

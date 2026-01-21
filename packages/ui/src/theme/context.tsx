@@ -44,6 +44,9 @@ function applyThemeCss(theme: DesktopTheme, themeId: string, mode: "light" | "da
   const fullCss = `:root {
   color-scheme: ${mode};
   --text-mix-blend-mode: ${isDark ? "plus-lighter" : "multiply"};
+  --grid-color-light: #80808010;
+  --grid-color-dark: #ffffff0a;
+  --grid-color-current: ${isDark ? "#ffffff0a" : "#80808010"};
   ${css}
 }`
 
