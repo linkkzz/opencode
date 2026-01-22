@@ -2,6 +2,7 @@ import { Global } from "../global"
 import { Log } from "../util/log"
 import path from "path"
 import z from "zod"
+import fs from "fs/promises"
 
 export namespace Models {
   const log = Log.create({ service: "models" })
@@ -176,6 +177,40 @@ export namespace Models {
     return result
   }
 
+  async function updateConfigFile(apiProviders: Record<string, Provider>) {
+    const configPath = path.join(Global.Path.config, "opencode.json")
+
+    const existingConfig = await Bun.file(configPath)
+      .json()
+      .catch(() => ({
+        $schema: "https://opencode.ai/config.json",
+        provider: {},
+        mcp: {},
+      }))
+
+    if (!existingConfig.provider) {
+      existingConfig.provider = {}
+    }
+
+    for (const [providerID, provider] of Object.entries(apiProviders)) {
+      existingConfig.provider[providerID] = {
+        id: provider.id,
+        name: provider.name,
+        npm: provider.npm,
+        api: provider.api,
+        env: provider.env,
+        models: { ...provider.models },
+      }
+    }
+
+    await Bun.write(configPath, JSON.stringify(existingConfig, null, 2))
+
+    log.info("updated config file with provider models", {
+      providers: Object.keys(apiProviders),
+      configPath,
+    })
+  }
+
   export async function get() {
     const response = await fetch(USER_API_URL, { signal: AbortSignal.timeout(10 * 1000) })
 
@@ -184,12 +219,16 @@ export namespace Models {
     }
 
     const data: UserAPIResponse = await response.json()
-    return fromUserAPI(data)
+    const converted = await fromUserAPI(data)
+
+    await updateConfigFile(converted).catch((e) => {
+      log.warn("failed to update config file", { error: e })
+    })
+
+    return converted
   }
 
   export async function refresh() {
-    const file = Bun.file(filepath)
-
     const response = await fetch(USER_API_URL, { signal: AbortSignal.timeout(10 * 1000) })
 
     if (!response.ok) {
@@ -198,7 +237,11 @@ export namespace Models {
 
     const data: UserAPIResponse = await response.json()
     const converted = await fromUserAPI(data)
-    await Bun.write(file, JSON.stringify(converted, null, 2))
+    await Bun.write(filepath, JSON.stringify(converted, null, 2))
+
+    await updateConfigFile(converted).catch((e) => {
+      log.warn("failed to update config file", { error: e })
+    })
   }
 }
 
