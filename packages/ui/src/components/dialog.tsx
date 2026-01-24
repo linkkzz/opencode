@@ -1,5 +1,5 @@
 import { Dialog as Kobalte } from "@kobalte/core/dialog"
-import { ComponentProps, JSXElement, Match, ParentProps, Show, Switch } from "solid-js"
+import { ComponentProps, JSXElement, Match, ParentProps, Show, Switch, splitProps } from "solid-js"
 import { IconButton } from "./icon-button"
 
 export interface DialogProps extends ParentProps {
@@ -11,14 +11,16 @@ export interface DialogProps extends ParentProps {
 }
 
 export function Dialog(props: DialogProps) {
+  const [local, others] = splitProps(props, ["title", "description", "action", "class", "classList", "children"])
+
   return (
-    <div data-component="dialog">
+    <div data-component="dialog" {...others}>
       <div data-slot="dialog-container">
         <Kobalte.Content
           data-slot="dialog-content"
           classList={{
-            ...(props.classList ?? {}),
-            [props.class ?? ""]: !!props.class,
+            ...(local.classList ?? {}),
+            [local.class ?? ""]: !!local.class,
           }}
           onOpenAutoFocus={(e) => {
             const target = e.currentTarget as HTMLElement | null
@@ -29,23 +31,23 @@ export function Dialog(props: DialogProps) {
             }
           }}
         >
-          <Show when={props.title || props.action}>
+          <Show when={local.title || local.action}>
             <div data-slot="dialog-header">
-              <Show when={props.title}>
-                <Kobalte.Title data-slot="dialog-title">{props.title}</Kobalte.Title>
+              <Show when={local.title}>
+                <Kobalte.Title data-slot="dialog-title">{local.title}</Kobalte.Title>
               </Show>
               <Switch>
-                <Match when={props.action}>{props.action}</Match>
+                <Match when={local.action}>{local.action}</Match>
                 <Match when={true}>
                   <Kobalte.CloseButton data-slot="dialog-close-button" as={IconButton} icon="close" variant="ghost" />
                 </Match>
               </Switch>
             </div>
           </Show>
-          <Show when={props.description}>
-            <Kobalte.Description data-slot="dialog-description">{props.description}</Kobalte.Description>
+          <Show when={local.description}>
+            <Kobalte.Description data-slot="dialog-description">{local.description}</Kobalte.Description>
           </Show>
-          <div data-slot="dialog-body">{props.children}</div>
+          <div data-slot="dialog-body">{local.children}</div>
         </Kobalte.Content>
       </div>
     </div>

@@ -8,7 +8,7 @@ import type {
   AppLogErrors,
   AppLogResponses,
   AppSkillsResponses,
-  Auth as Auth3,
+  Auth as Auth4,
   AuthSetErrors,
   AuthSetResponses,
   CommandListResponses,
@@ -70,6 +70,7 @@ import type {
   ProjectUpdateErrors,
   ProjectUpdateResponses,
   ProviderAuthResponses,
+  ProviderAuthSavedResponses,
   ProviderListResponses,
   ProviderOauthAuthorizeErrors,
   ProviderOauthAuthorizeResponses,
@@ -1843,6 +1844,27 @@ export class Question extends HeyApiClient {
   }
 }
 
+export class Auth extends HeyApiClient {
+  /**
+   * Get saved provider auth
+   *
+   * Get saved authentication info for all providers (API keys, OAuth tokens, etc.).
+   */
+  public saved<ThrowOnError extends boolean = false>(
+    parameters?: {
+      directory?: string
+    },
+    options?: Options<never, ThrowOnError>,
+  ) {
+    const params = buildClientParams([parameters], [{ args: [{ in: "query", key: "directory" }] }])
+    return (options?.client ?? this.client).get<ProviderAuthSavedResponses, unknown, ThrowOnError>({
+      url: "/provider/auth/saved",
+      ...options,
+      ...params,
+    })
+  }
+}
+
 export class Oauth extends HeyApiClient {
   /**
    * OAuth authorize
@@ -1966,6 +1988,11 @@ export class Provider extends HeyApiClient {
       ...options,
       ...params,
     })
+  }
+
+  private _auth?: Auth
+  get auth2(): Auth {
+    return (this._auth ??= new Auth({ client: this.client }))
   }
 
   private _oauth?: Oauth
@@ -2153,7 +2180,7 @@ export class File extends HeyApiClient {
   }
 }
 
-export class Auth extends HeyApiClient {
+export class Auth2 extends HeyApiClient {
   /**
    * Remove MCP OAuth
    *
@@ -2427,9 +2454,9 @@ export class Mcp extends HeyApiClient {
     })
   }
 
-  private _auth?: Auth
-  get auth(): Auth {
-    return (this._auth ??= new Auth({ client: this.client }))
+  private _auth?: Auth2
+  get auth(): Auth2 {
+    return (this._auth ??= new Auth2({ client: this.client }))
   }
 }
 
@@ -2959,7 +2986,7 @@ export class Formatter extends HeyApiClient {
   }
 }
 
-export class Auth2 extends HeyApiClient {
+export class Auth3 extends HeyApiClient {
   /**
    * Set auth credentials
    *
@@ -2969,7 +2996,7 @@ export class Auth2 extends HeyApiClient {
     parameters: {
       providerID: string
       directory?: string
-      auth?: Auth3
+      auth?: Auth4
     },
     options?: Options<never, ThrowOnError>,
   ) {
@@ -3137,9 +3164,9 @@ export class OpencodeClient extends HeyApiClient {
     return (this._formatter ??= new Formatter({ client: this.client }))
   }
 
-  private _auth?: Auth2
-  get auth(): Auth2 {
-    return (this._auth ??= new Auth2({ client: this.client }))
+  private _auth?: Auth3
+  get auth(): Auth3 {
+    return (this._auth ??= new Auth3({ client: this.client }))
   }
 
   private _event?: Event

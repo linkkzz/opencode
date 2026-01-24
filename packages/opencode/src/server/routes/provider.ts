@@ -5,6 +5,7 @@ import { Config } from "../../config/config"
 import { Provider } from "../../provider/provider"
 import { Models } from "../../provider/models"
 import { ProviderAuth } from "../../provider/auth"
+import { Auth } from "../../auth/index"
 import { mapValues } from "remeda"
 import { errors } from "../error"
 import { lazy } from "../../util/lazy"
@@ -78,6 +79,27 @@ export const ProviderRoutes = lazy(() =>
       }),
       async (c) => {
         return c.json(await ProviderAuth.methods())
+      },
+    )
+    .get(
+      "/auth/saved",
+      describeRoute({
+        summary: "Get saved provider auth",
+        description: "Get saved authentication info for all providers (API keys, OAuth tokens, etc.).",
+        operationId: "provider.auth.saved",
+        responses: {
+          200: {
+            description: "Saved auth info",
+            content: {
+              "application/json": {
+                schema: resolver(z.record(z.string(), Auth.Info)),
+              },
+            },
+          },
+        },
+      }),
+      async (c) => {
+        return c.json(await Auth.all())
       },
     )
     .post(

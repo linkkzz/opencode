@@ -18,6 +18,7 @@ import { Popover } from "@opencode-ai/ui/popover"
 import { TextField } from "@opencode-ai/ui/text-field"
 import { Keybind } from "@opencode-ai/ui/keybind"
 import { SessionMcpIndicator } from "@/components/session-mcp-indicator"
+import { ApiKeyButton } from "@/components/api-key-button"
 
 export function SessionHeader() {
   const globalSDK = useGlobalSDK()
@@ -161,6 +162,9 @@ export function SessionHeader() {
             <div class="flex items-center gap-3">
               <div class="hidden md:flex items-center gap-1">
                 <SessionMcpIndicator />
+              </div>
+              <div class="hidden md:flex items-center gap-1">
+                <ApiKeyButton />
               </div>
               <div class="flex items-center gap-1">
                 <Show when={currentSession()?.summary?.files}>

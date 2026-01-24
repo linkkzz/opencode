@@ -83,12 +83,6 @@ export namespace Server {
             status: 500,
           })
         })
-        .use((c, next) => {
-          const password = Flag.OPENCODE_SERVER_PASSWORD
-          if (!password) return next()
-          const username = Flag.OPENCODE_SERVER_USERNAME ?? "opencode"
-          return basicAuth({ username, password })(c, next)
-        })
         .use(async (c, next) => {
           const skipLogging = c.req.path === "/log"
           if (!skipLogging) {
@@ -127,6 +121,13 @@ export namespace Server {
             },
           }),
         )
+        .use((c, next) => {
+          if (c.req.method === "OPTIONS") return next()
+          const password = Flag.OPENCODE_SERVER_PASSWORD
+          if (!password) return next()
+          const username = Flag.OPENCODE_SERVER_USERNAME ?? "opencode"
+          return basicAuth({ username, password })(c, next)
+        })
         .route("/global", GlobalRoutes())
         .use(async (c, next) => {
           let directory = c.req.query("directory") || c.req.header("x-opencode-directory") || process.cwd()

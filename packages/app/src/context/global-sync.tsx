@@ -100,12 +100,14 @@ function createGlobalSync() {
     project: Project[]
     provider: ProviderListResponse
     provider_auth: ProviderAuthResponse
+    provider_auth_saved: Record<string, unknown>
   }>({
     ready: false,
     path: { state: "", config: "", worktree: "", directory: "", home: "" },
     project: [],
     provider: { all: [], connected: [], default: {} },
     provider_auth: {},
+    provider_auth_saved: {},
   })
 
   const children: Record<string, [Store<State>, SetStoreFunction<State>]> = {}
@@ -606,6 +608,15 @@ function createGlobalSync() {
           setGlobalStore("provider_auth", x.data ?? {})
         }),
       ),
+      retry(() =>
+        (platform.fetch ?? fetch)(`${globalSDK.url}/provider/auth/saved`)
+          .then((x) => x.json())
+          .then((data) => setGlobalStore("provider_auth_saved", data ?? {}))
+          .catch((e) => {
+            console.error("Failed to fetch saved auth:", e)
+            setGlobalStore("provider_auth_saved", {})
+          }),
+      ),
     ])
       .then(() => setGlobalStore("ready", true))
       .catch((e) => setGlobalStore("error", e))
@@ -617,6 +628,7 @@ function createGlobalSync() {
 
   return {
     data: globalStore,
+    setStore: setGlobalStore,
     get ready() {
       return globalStore.ready
     },

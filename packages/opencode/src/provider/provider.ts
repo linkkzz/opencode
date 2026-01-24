@@ -89,7 +89,12 @@ export namespace Provider {
       const hasKey = await (async () => {
         const env = Env.all()
         if (input.env.some((item) => env[item])) return true
-        if (await Auth.get(input.id)) return true
+
+        const authInfo = await Auth.get(input.id)
+        if (authInfo?.type === "api") {
+          return authInfo.key && authInfo.key.length > 0
+        }
+
         const config = await Config.get()
         if (config.provider?.["opencode"]?.options?.apiKey) return true
         return false
@@ -737,10 +742,12 @@ export namespace Provider {
       if (!providers[providerID]) continue
       if (disabled.has(providerID)) continue
       if (provider.type === "api") {
-        mergeProvider(providerID, {
-          source: "api",
-          key: provider.key,
-        })
+        if (provider.key && provider.key.length > 0) {
+          mergeProvider(providerID, {
+            source: "api",
+            key: provider.key,
+          })
+        }
       }
     }
 

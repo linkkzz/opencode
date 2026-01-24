@@ -9,3 +9,14 @@
 *[data-tauri-drag-region] {
   app-region: drag;
 }
+
+[xiaomi-sc-cloud-dialog] [data-slot="dialog-content"] {
+  min-height: auto !important;
+  flex: none !important;
+  height: auto !important;
+  padding-bottom: 32px !important;
+}
+
+[xiaomi-sc-cloud-dialog] [data-slot="dialog-body"] {
+  overflow: visible !important;
+}

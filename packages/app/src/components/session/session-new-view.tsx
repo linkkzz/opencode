@@ -10,12 +10,12 @@ export function NewSessionView() {
   const projectRoot = createMemo(() => sync.data.path.directory)
 
   return (
-    <div
-      class="relative size-full flex flex-col pb-45 justify-end items-start gap-4 flex-[1_0_0] self-stretch max-w-200 mx-auto px-6"
-      style={{ "padding-bottom": "calc(var(--prompt-height, 11.25rem) + 64px)" }}
-    >
+    <div class="relative size-full">
       <div class="absolute inset-0 pointer-events-none bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-      <div class="relative z-10 flex flex-col gap-4">
+      <div
+        class="relative z-10 size-full flex flex-col pb-45 justify-end items-start gap-4 flex-[1_0_0] self-stretch max-w-200 mx-auto px-6"
+        style={{ "padding-bottom": "calc(var(--prompt-height, 11.25rem) + 64px)" }}
+      >
         <div class="text-20-medium text-text-strongest">今天想聊点什么？</div>
         <div class="flex justify-center items-center gap-3">
           <Icon name="folder" size="small" />

@@ -11,7 +11,7 @@ import { Spinner } from "@opencode-ai/ui/spinner"
 import { TextField } from "@opencode-ai/ui/text-field"
 import { showToast } from "@opencode-ai/ui/toast"
 import { iife } from "@opencode-ai/util/iife"
-import { createMemo, Match, onCleanup, onMount, Switch } from "solid-js"
+import { createMemo, Match, onCleanup, onMount, Show, Switch } from "solid-js"
 import { createStore, produce } from "solid-js/store"
 import { Link } from "@/components/link"
 import { useGlobalSDK } from "@/context/global-sdk"
@@ -25,6 +25,7 @@ export function DialogConnectProvider(props: { provider: string }) {
   const globalSync = useGlobalSync()
   const globalSDK = useGlobalSDK()
   const platform = usePlatform()
+  const setGlobalStore = globalSync.setStore
   const provider = createMemo(() => globalSync.data.provider.all.find((x) => x.id === props.provider)!)
   const methods = createMemo(
     () =>
@@ -43,6 +44,16 @@ export function DialogConnectProvider(props: { provider: string }) {
   })
 
   const method = createMemo(() => (store.methodIndex !== undefined ? methods().at(store.methodIndex!) : undefined))
+
+  const isConfigured = createMemo(() => {
+    const connected = globalSync.data.provider?.connected ?? []
+    const savedAuth = globalSync.data.provider_auth_saved?.[props.provider] as
+      | { type?: string; key?: string }
+      | undefined
+    return (
+      connected.includes(props.provider) || (savedAuth?.type === "api" && savedAuth.key && savedAuth.key.length > 0)
+    )
+  })
 
   async function selectMethod(index: number) {
     const method = methods()[index]
@@ -108,6 +119,16 @@ export function DialogConnectProvider(props: { provider: string }) {
 
   async function complete() {
     await globalSDK.client.global.dispose()
+
+    // 重新加载已保存的认证数据
+    try {
+      const response = await fetch(`${globalSDK.url}/provider/auth/saved`)
+      const data = await response.json()
+      setGlobalStore("provider_auth_saved", data ?? {})
+    } catch (e) {
+      console.error("Failed to refresh saved auth:", e)
+    }
+
     dialog.close()
     showToast({
       variant: "success",
@@ -135,20 +156,32 @@ export function DialogConnectProvider(props: { provider: string }) {
   }
 
   return (
-    <Dialog title={<IconButton tabIndex={-1} icon="arrow-left" variant="ghost" onClick={goBack} />}>
-      <div class="flex flex-col gap-6 px-2.5 pb-3">
-        <div class="px-2.5 flex gap-4 items-center">
-          <ProviderIcon id={props.provider as IconName} class="size-5 shrink-0 icon-strong-base" />
-          <div class="text-16-medium text-text-strong">
-            <Switch>
-              <Match when={props.provider === "anthropic" && method()?.label?.toLowerCase().includes("max")}>
-                Login with Claude Pro/Max
-              </Match>
-              <Match when={true}>Connect {provider().name}</Match>
-            </Switch>
+    <Dialog
+      title={
+        <Switch>
+          <Match when={props.provider === "xiaomi-sc-cloud"}>API Key 配置</Match>
+          <Match when={true}>
+            <IconButton tabIndex={-1} icon="arrow-left" variant="ghost" onClick={goBack} />
+          </Match>
+        </Switch>
+      }
+      {...(props.provider === "xiaomi-sc-cloud" ? { "xiaomi-sc-cloud-dialog": true } : {})}
+    >
+      <div class="flex flex-col gap-4 px-2.5">
+        <Show when={props.provider !== "xiaomi-sc-cloud"}>
+          <div class="px-2.5 flex gap-4 items-center">
+            <ProviderIcon id={props.provider as IconName} class="size-5 shrink-0 icon-strong-base" />
+            <div class="text-16-medium text-text-strong">
+              <Switch>
+                <Match when={props.provider === "anthropic" && method()?.label?.toLowerCase().includes("max")}>
+                  Login with Claude Pro/Max
+                </Match>
+                <Match when={true}>Connect {provider().name}</Match>
+              </Switch>
+            </div>
           </div>
-        </div>
-        <div class="px-2.5 pb-10 flex flex-col gap-6">
+        </Show>
+        <div class="px-2.5 flex flex-col gap-6">
           <Switch>
             <Match when={store.methodIndex === undefined}>
               <div class="text-14-regular text-text-base">Select login method for {provider().name}.</div>
@@ -194,78 +227,99 @@ export function DialogConnectProvider(props: { provider: string }) {
             <Match when={method()?.type === "api"}>
               {iife(() => {
                 const [formStore, setFormStore] = createStore({
-                  value: "",
+                  value: (() => {
+                    const savedAuth = globalSync.data.provider_auth_saved?.[props.provider] as
+                      | { type?: string; key?: string }
+                      | undefined
+                    if (savedAuth?.type === "api" && savedAuth.key && savedAuth.key.length > 0) {
+                      const key = savedAuth.key
+                      if (key.length > 4) {
+                        return key.substring(0, 3) + "*".repeat(key.length - 3)
+                      }
+                      return key
+                    }
+                    return ""
+                  })(),
+                  isEditing: false,
+                  hasChanged: false,
                   error: undefined as string | undefined,
+                })
+
+                const isSaveDisabled = createMemo(() => {
+                  if (!isConfigured()) {
+                    return !formStore.value || formStore.value.trim() === ""
+                  }
+                  return !formStore.hasChanged
                 })
 
                 async function handleSubmit(e: SubmitEvent) {
                   e.preventDefault()
 
-                  const form = e.currentTarget as HTMLFormElement
-                  const formData = new FormData(form)
-                  const apiKey = formData.get("apiKey") as string
+                  if (!formStore.hasChanged) return
 
-                  if (!apiKey?.trim()) {
-                    setFormStore("error", "API key is required")
-                    return
-                  }
-
+                  const trimmedKey = formStore.value.trim()
                   setFormStore("error", undefined)
+
                   await globalSDK.client.auth.set({
                     providerID: props.provider,
                     auth: {
                       type: "api",
-                      key: apiKey,
+                      key: trimmedKey,
                     },
                   })
                   await complete()
                 }
 
+                function handleInput() {
+                  if (formStore.isEditing) return
+
+                  setFormStore("value", "")
+                  setFormStore("isEditing", true)
+                  setFormStore("hasChanged", true)
+                }
+
+                function handleValueChange(newValue: string) {
+                  setFormStore("value", newValue)
+
+                  if (formStore.isEditing) {
+                    setFormStore("hasChanged", true)
+                  }
+                }
+
                 return (
-                  <div class="flex flex-col gap-6">
-                    <Switch>
-                      <Match when={provider().id === "opencode"}>
-                        <div class="flex flex-col gap-4">
-                          <div class="text-14-regular text-text-base">
-                            OpenCode Zen gives you access to a curated set of reliable optimized models for coding
-                            agents.
-                          </div>
-                          <div class="text-14-regular text-text-base">
-                            With a single API key you'll get access to models such as Claude, GPT, Gemini, GLM and more.
-                          </div>
-                          <div class="text-14-regular text-text-base">
-                            Visit{" "}
-                            <Link href="https://opencode.ai/zen" tabIndex={-1}>
-                              opencode.ai/zen
-                            </Link>{" "}
-                            to collect your API key.
-                          </div>
-                        </div>
-                      </Match>
-                      <Match when={true}>
-                        <div class="text-14-regular text-text-base">
+                  <form onSubmit={handleSubmit} class="flex flex-col gap-4">
+                    <div class="text-14-regular text-text-weak px-2">
+                      <Switch>
+                        <Match when={props.provider === "xiaomi-sc-cloud"}>
+                          登录{" "}
+                          <Link href="https://cloudmodel.iccc.mioffice.cn/" tabIndex={-1}>
+                            CloudModel平台
+                          </Link>{" "}
+                          创建 API Key 并填入下方。
+                        </Match>
+                        <Match when={true}>
                           Enter your {provider().name} API key to connect your account and use {provider().name} models
                           in OpenCode.
-                        </div>
-                      </Match>
-                    </Switch>
-                    <form onSubmit={handleSubmit} class="flex flex-col items-start gap-4">
-                      <TextField
-                        autofocus
-                        type="text"
-                        label={`${provider().name} API key`}
-                        placeholder="API key"
-                        name="apiKey"
-                        value={formStore.value}
-                        onChange={setFormStore.bind(null, "value")}
-                        validationState={formStore.error ? "invalid" : undefined}
-                        error={formStore.error}
-                      />
-                      <Button class="w-auto" type="submit" size="large" variant="primary">
-                        Submit
+                        </Match>
+                      </Switch>
+                    </div>
+                    <TextField
+                      autofocus
+                      type="text"
+                      placeholder={formStore.isEditing ? "" : "API Key"}
+                      name="apiKey"
+                      value={formStore.value}
+                      onInput={handleInput}
+                      onChange={handleValueChange}
+                      validationState={formStore.error ? "invalid" : undefined}
+                      error={formStore.error}
+                    />
+                    <div class="flex justify-end gap-2">
+                      <Button type="submit" variant="primary" disabled={isSaveDisabled()}>
+                        {isConfigured() ? "更新" : "保存"}
                       </Button>
-                    </form>
-                  </div>
+                    </div>
+                  </form>
                 )
               })}
             </Match>

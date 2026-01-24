@@ -1952,6 +1952,28 @@ export type ProviderAuthMethod = {
   label: string
 }
 
+export type OAuth = {
+  type: "oauth"
+  refresh: string
+  access: string
+  expires: number
+  accountId?: string
+  enterpriseUrl?: string
+}
+
+export type ApiAuth = {
+  type: "api"
+  key: string
+}
+
+export type WellKnownAuth = {
+  type: "wellknown"
+  key: string
+  token: string
+}
+
+export type Auth = OAuth | ApiAuth | WellKnownAuth
+
 export type ProviderAuthAuthorization = {
   url: string
   method: "auto" | "code"
@@ -2082,28 +2104,6 @@ export type FormatterStatus = {
   extensions: Array<string>
   enabled: boolean
 }
-
-export type OAuth = {
-  type: "oauth"
-  refresh: string
-  access: string
-  expires: number
-  accountId?: string
-  enterpriseUrl?: string
-}
-
-export type ApiAuth = {
-  type: "api"
-  key: string
-}
-
-export type WellKnownAuth = {
-  type: "wellknown"
-  key: string
-  token: string
-}
-
-export type Auth = OAuth | ApiAuth | WellKnownAuth
 
 export type GlobalHealthData = {
   body?: never
@@ -3816,6 +3816,26 @@ export type ProviderAuthResponses = {
 }
 
 export type ProviderAuthResponse = ProviderAuthResponses[keyof ProviderAuthResponses]
+
+export type ProviderAuthSavedData = {
+  body?: never
+  path?: never
+  query?: {
+    directory?: string
+  }
+  url: "/provider/auth/saved"
+}
+
+export type ProviderAuthSavedResponses = {
+  /**
+   * Saved auth info
+   */
+  200: {
+    [key: string]: Auth
+  }
+}
+
+export type ProviderAuthSavedResponse = ProviderAuthSavedResponses[keyof ProviderAuthSavedResponses]
 
 export type ProviderOauthAuthorizeData = {
   body?: {

@@ -8,7 +8,7 @@ export namespace Models {
   const log = Log.create({ service: "models" })
   const filepath = path.join(Global.Path.cache, "models.json")
 
-  const USER_API_URL = "http://localhost:8000/api/models?scope=cloudmodel"
+  const USER_API_URL = "https://cloudmodel.iccc.mioffice.cn/api/v1/models?scope=cloudmodel"
 
   interface UserAPIModel {
     name: string
