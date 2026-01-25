@@ -27,7 +27,7 @@ export function ApiKeyButton() {
       <Show when={isConfigured()}>
         <div class="size-1.5 rounded-full bg-icon-success-base mr-2" />
       </Show>
-      <span class="text-12-regular text-text-weak">API_KEY</span>
+      <span class="text-12-regular text-text-weak">API KEY</span>
     </Button>
   )
 }

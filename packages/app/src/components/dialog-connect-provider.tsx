@@ -231,16 +231,8 @@ export function DialogConnectProvider(props: { provider: string }) {
                     const savedAuth = globalSync.data.provider_auth_saved?.[props.provider] as
                       | { type?: string; key?: string }
                       | undefined
-                    if (savedAuth?.type === "api" && savedAuth.key && savedAuth.key.length > 0) {
-                      const key = savedAuth.key
-                      if (key.length > 4) {
-                        return key.substring(0, 3) + "*".repeat(key.length - 3)
-                      }
-                      return key
-                    }
-                    return ""
+                    return savedAuth?.type === "api" && savedAuth.key && savedAuth.key.length > 0 ? savedAuth.key : ""
                   })(),
-                  isEditing: false,
                   hasChanged: false,
                   error: undefined as string | undefined,
                 })
@@ -254,7 +246,6 @@ export function DialogConnectProvider(props: { provider: string }) {
 
                 async function handleSubmit(e: SubmitEvent) {
                   e.preventDefault()
-
                   if (!formStore.hasChanged) return
 
                   const trimmedKey = formStore.value.trim()
@@ -270,52 +261,58 @@ export function DialogConnectProvider(props: { provider: string }) {
                   await complete()
                 }
 
-                function handleInput() {
-                  if (formStore.isEditing) return
-
-                  setFormStore("value", "")
-                  setFormStore("isEditing", true)
+                function handleValueChange(newValue: string) {
+                  setFormStore("value", newValue)
                   setFormStore("hasChanged", true)
                 }
 
-                function handleValueChange(newValue: string) {
-                  setFormStore("value", newValue)
-
-                  if (formStore.isEditing) {
-                    setFormStore("hasChanged", true)
-                  }
-                }
-
                 return (
-                  <form onSubmit={handleSubmit} class="flex flex-col gap-4">
-                    <div class="text-14-regular text-text-weak px-2">
-                      <Switch>
-                        <Match when={props.provider === "xiaomi-sc-cloud"}>
-                          登录{" "}
-                          <Link href="https://cloudmodel.iccc.mioffice.cn/" tabIndex={-1}>
-                            CloudModel平台
-                          </Link>{" "}
-                          创建 API Key 并填入下方。
-                        </Match>
-                        <Match when={true}>
-                          Enter your {provider().name} API key to connect your account and use {provider().name} models
-                          in OpenCode.
-                        </Match>
-                      </Switch>
+                  <form onSubmit={handleSubmit} class="flex flex-col gap-6">
+                    <div class="rounded-lg border border-border-weak-base bg-surface-info-base/10 p-4">
+                      <div class="flex items-start gap-3">
+                        <Icon name="check" class="size-5 text-icon-base mt-0.5 flex-shrink-0" />
+                        <div class="flex flex-col gap-2">
+                          <div class="text-14-medium text-text-base">
+                            <Switch>
+                              <Match when={props.provider === "xiaomi-sc-cloud"}>配置 API Key</Match>
+                              <Match when={true}>Connect with API Key</Match>
+                            </Switch>
+                          </div>
+                          <div class="text-13-regular text-text-weak leading-relaxed">
+                            <Switch>
+                              <Match when={props.provider === "xiaomi-sc-cloud"}>
+                                登录{" "}
+                                <Link href="https://cloudmodel.iccc.mioffice.cn/" tabIndex={-1}>
+                                  CloudModel平台
+                                </Link>{" "}
+                                创建 API Key 并填入下方。
+                              </Match>
+                              <Match when={true}>
+                                Enter your {provider().name} API key to connect your account and use models in OpenCode.
+                              </Match>
+                            </Switch>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <TextField
-                      autofocus
-                      type="text"
-                      placeholder={formStore.isEditing ? "" : "API Key"}
-                      name="apiKey"
-                      value={formStore.value}
-                      onInput={handleInput}
-                      onChange={handleValueChange}
-                      validationState={formStore.error ? "invalid" : undefined}
-                      error={formStore.error}
-                    />
-                    <div class="flex justify-end gap-2">
-                      <Button type="submit" variant="primary" disabled={isSaveDisabled()}>
+                    <div class="w-full flex gap-2 items-start">
+                      <TextField
+                        autofocus
+                        type="text"
+                        placeholder="API Key"
+                        name="apiKey"
+                        value={formStore.value}
+                        onChange={handleValueChange}
+                        validationState={formStore.error ? "invalid" : undefined}
+                        error={formStore.error}
+                        class="flex-1"
+                      />
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        disabled={isSaveDisabled()}
+                        class="h-[32px] px-4 whitespace-nowrap"
+                      >
                         {isConfigured() ? "更新" : "保存"}
                       </Button>
                     </div>

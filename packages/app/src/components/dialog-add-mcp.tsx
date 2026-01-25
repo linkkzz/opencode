@@ -218,7 +218,7 @@ export const DialogAddMcp: Component = () => {
                 label="Environment"
                 value={form.local.environment}
                 onChange={(v) => setForm("local", "environment", v)}
-                placeholder={{ key: "API_KEY", value: "xxx" }}
+                placeholder={{ key: "API KEY", value: "xxx" }}
               />
             </Show>
 
