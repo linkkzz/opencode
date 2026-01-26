@@ -6,7 +6,6 @@ import { useTheme } from "@opencode-ai/ui/theme"
 import { useLayout } from "@/context/layout"
 import { usePlatform } from "@/context/platform"
 import { useCommand } from "@/context/command"
-import { ThemeToggle } from "./theme-toggle"
 import { Logo } from "./logo"
 
 export function Titlebar() {
@@ -92,11 +91,11 @@ export function Titlebar() {
             <IconButton icon="menu" variant="ghost" class="size-8 rounded-md" onClick={layout.mobileSidebar.toggle} />
           </div>
         </Show>
-        <div class="hidden xl:flex shrink-0 mr-4">
+        <div class="hidden xl:flex shrink-0 mr-4 ml-6">
           <Logo />
         </div>
         <TooltipKeybind
-          class={web() ? "hidden xl:flex shrink-0 ml-2" : "hidden xl:flex shrink-0"}
+          class={web() ? "hidden xl:flex shrink-0 ml-2" : "hidden xl:flex shrink-0 ml-2"}
           placement="bottom"
           title="切换侧边栏"
           keybind={command.keybind("sidebar.toggle")}
@@ -110,9 +109,7 @@ export function Titlebar() {
         </TooltipKeybind>
         <div id="opencode-titlebar-left" class="flex items-center gap-3 min-w-0 px-2" />
         <div class="flex-1 h-full" data-tauri-drag-region />
-        <div id="opencode-titlebar-right" class="flex items-center gap-3 shrink-0">
-          <ThemeToggle />
-        </div>
+        <div id="opencode-titlebar-right" class="flex items-center gap-3 shrink-0" />
         <Show when={reserve()}>
           <div class="w-[120px] h-full shrink-0" data-tauri-drag-region />
         </Show>

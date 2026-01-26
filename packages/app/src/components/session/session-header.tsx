@@ -16,9 +16,9 @@ import { Button } from "@opencode-ai/ui/button"
 import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { Popover } from "@opencode-ai/ui/popover"
 import { TextField } from "@opencode-ai/ui/text-field"
-import { Keybind } from "@opencode-ai/ui/keybind"
 import { SessionMcpIndicator } from "@/components/session-mcp-indicator"
 import { ApiKeyButton } from "@/components/api-key-button"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function SessionHeader() {
   const globalSDK = useGlobalSDK()
@@ -31,18 +31,6 @@ export function SessionHeader() {
   const platform = usePlatform()
 
   const projectDirectory = createMemo(() => base64Decode(params.dir ?? ""))
-  const project = createMemo(() => {
-    const directory = projectDirectory()
-    if (!directory) return
-    return layout.projects.list().find((p) => p.worktree === directory || p.sandboxes?.includes(directory))
-  })
-  const name = createMemo(() => {
-    const current = project()
-    if (current) return current.name || getFilename(current.worktree)
-    return getFilename(projectDirectory())
-  })
-  const hotkey = createMemo(() => command.keybind("file.open"))
-
   const currentSession = createMemo(() => sync.data.session.find((s) => s.id === params.id))
   const shareEnabled = createMemo(() => sync.data.config.share !== "disabled")
   const sessionKey = createMemo(() => `${params.dir}${params.id ? "/" + params.id : ""}`)
@@ -120,15 +108,10 @@ export function SessionHeader() {
     platform.openLink(url)
   }
 
-  const [centerMount, setCenterMount] = createSignal<HTMLElement | null>(null)
   const [rightMount, setRightMount] = createSignal<HTMLElement | null>(null)
 
   createEffect(() => {
-    const centerElement = document.getElementById("opencode-titlebar-center")
     const rightElement = document.getElementById("opencode-titlebar-right")
-    if (centerElement) {
-      setCenterMount(centerElement)
-    }
     if (rightElement) {
       setRightMount(rightElement)
     }
@@ -136,37 +119,18 @@ export function SessionHeader() {
 
   return (
     <>
-      <Show when={centerMount()}>
-        {(mount) => (
-          <Portal mount={mount()}>
-            <button
-              type="button"
-              class="hidden md:flex w-[320px] p-1 pl-1.5 items-center gap-2 justify-between rounded-md border border-border-weak-base bg-surface-raised-base transition-colors cursor-default hover:bg-surface-raised-base-hover focus:bg-surface-raised-base-hover active:bg-surface-raised-base-active"
-              onClick={() => command.trigger("file.open")}
-            >
-              <div class="flex items-center gap-2">
-                <Icon name="magnifying-glass" size="normal" class="icon-base" />
-                <span class="flex-1 min-w-0 text-14-regular text-text-weak truncate h-3.5 flex items-center overflow-visible">
-                  Search {name()}
-                </span>
-              </div>
-
-              <Show when={hotkey()}>{(keybind) => <Keybind>{keybind()}</Keybind>}</Show>
-            </button>
-          </Portal>
-        )}
-      </Show>
       <Show when={rightMount()}>
         {(mount) => (
           <Portal mount={mount()}>
-            <div class="flex items-center gap-3">
-              <div class="hidden md:flex items-center gap-1">
+            <div class="flex items-center gap-5">
+              <div class="hidden md:flex items-center gap-3 ml--4">
                 <SessionMcpIndicator />
               </div>
-              <div class="hidden md:flex items-center gap-1">
+              <div class="hidden md:flex items-center gap-3">
                 <ApiKeyButton />
+                <ThemeToggle />
               </div>
-              <div class="flex items-center gap-1">
+              <div class="flex items-center gap-3">
                 <Show when={currentSession()?.summary?.files}>
                   <TooltipKeybind
                     class="hidden md:block shrink-0"

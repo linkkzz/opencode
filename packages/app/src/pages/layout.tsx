@@ -1543,7 +1543,7 @@ export default function Layout(props: ParentProps) {
                 class="w-full border border-border-weak-base rounded-md"
                 onClick={() =>
                   platform.openLink(
-                    "https://applink.feishu.cn/client/chat/open?openId=ou_1873b6277706b9204a6763b4d5eb895b",
+                    "https://applink.feishu.cn/client/chat/chatter/add_by_link?link_token=aach3566-66e1-4ec8-9812-629580c9940e",
                   )
                 }
                 style="padding: 0 8px 0 4px"

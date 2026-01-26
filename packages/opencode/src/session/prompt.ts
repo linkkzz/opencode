@@ -1732,6 +1732,21 @@ NOTE: At any point in time through this workflow you should feel free to ask the
     const subtaskParts = firstRealUser.parts.filter((p) => p.type === "subtask") as MessageV2.SubtaskPart[]
     const hasOnlySubtaskParts = subtaskParts.length > 0 && firstRealUser.parts.every((p) => p.type === "subtask")
 
+    // Detect language from the first real user message
+    const detectLanguage = (parts: MessageV2.Part[]): "zh" | "en" => {
+      const textParts = parts.filter(
+        (p) => p.type === "text" && !("synthetic" in p && p.synthetic),
+      ) as MessageV2.TextPart[]
+      const combined = textParts.map((p) => p.text).join(" ")
+      const chineseCharCount = (combined.match(/[\u4e00-\u9fa5]/g) || []).length
+      const englishCharCount = (combined.match(/[a-zA-Z]/g) || []).length
+      return chineseCharCount > englishCharCount ? "zh" : "en"
+    }
+
+    const language = detectLanguage(firstRealUser.parts)
+    const generateTitlePrompt =
+      language === "zh" ? "为这段对话生成标题：\n" : "Generate a title for this conversation:\n"
+
     const agent = await Agent.get("title")
     if (!agent) return
     const result = await LLM.stream({
@@ -1752,7 +1767,7 @@ NOTE: At any point in time through this workflow you should feel free to ask the
       messages: [
         {
           role: "user",
-          content: "Generate a title for this conversation:\n",
+          content: generateTitlePrompt,
         },
         ...(hasOnlySubtaskParts
           ? [{ role: "user" as const, content: subtaskParts.map((p) => p.prompt).join("\n") }]
