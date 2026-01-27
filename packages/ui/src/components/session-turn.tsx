@@ -587,7 +587,14 @@ export function SessionTurn(
                     <Show when={!working() && (response() || hasDiffs())}>
                       <div data-slot="session-turn-summary-section">
                         <div data-slot="session-turn-summary-header">
-                          <div data-slot="session-turn-summary-copy" class="flex flex-row gap-2 mt-5">
+                          <h2 data-slot="session-turn-summary-title">Response</h2>
+                          <Markdown
+                            data-slot="session-turn-markdown"
+                            data-diffs={hasDiffs()}
+                            text={response() ?? ""}
+                            cacheKey={responsePartId()}
+                          />
+                          <div data-slot="session-turn-summary-copy" class="flex flex-row gap-2 pt-3">
                             <Tooltip value={responseCopied() ? "已复制!" : "复制"} placement="top" gutter={8}>
                               <IconButton
                                 icon={responseCopied() ? "check" : "copy"}
@@ -606,13 +613,6 @@ export function SessionTurn(
                               </Tooltip>
                             </Show>
                           </div>
-                          <h2 data-slot="session-turn-summary-title">Response</h2>
-                          <Markdown
-                            data-slot="session-turn-markdown"
-                            data-diffs={hasDiffs()}
-                            text={response() ?? ""}
-                            cacheKey={responsePartId()}
-                          />
                         </div>
                         <Accordion
                           data-slot="session-turn-accordion"

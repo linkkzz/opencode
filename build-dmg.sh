@@ -104,11 +104,20 @@ if [ -d "$APP_PATH" ]; then
   echo -e "${GREEN}✓ App processed for distribution${NC}"
 fi
 
-# Create DMG manually from cleaned app
+# Check if create-dmg is available
+if command -v create-dmg &> /dev/null; then
+  echo -e "${GREEN}✓ create-dmg found${NC}"
+  USE_CREATE_DMG=1
+else
+  echo -e "${YELLOW}⚠ create-dmg not found. Install with: brew install create-dmg${NC}"
+  echo -e "${YELLOW}  Falling back to manual DMG creation${NC}"
+  USE_CREATE_DMG=0
+fi
+
+# Create DMG
 if [ -d "$APP_PATH" ]; then
   echo -e "${YELLOW}Creating DMG from cleaned app...${NC}"
   
-  rm -rf "$TEMP_DMG_DIR"
   mkdir -p "$TEMP_DMG_DIR"
   mkdir -p "$FINAL_DMGS_DIR"
   
@@ -117,40 +126,58 @@ if [ -d "$APP_PATH" ]; then
   
   cp -R "$APP_PATH" "$TEMP_DMG_DIR/"
   
-  # Create read-write DMG first
-  APP_SIZE=$(du -sm "$TEMP_DMG_DIR" | cut -f1)
-  DMG_SIZE=$((APP_SIZE + 20))
-  
-  hdiutil create -volname "CloudModel Desktop" \
-    -size "${DMG_SIZE}m" \
-    -type UDIF \
-    -fs "HFS+" \
-    -ov \
-    "$TEMP_RW_DMG"
-  
-  # Mount the RW DMG
-  rm -rf "$TEMP_MOUNT_DIR"
-  mkdir -p "$TEMP_MOUNT_DIR"
-  hdiutil attach -readwrite -mountpoint "$TEMP_MOUNT_DIR" "$TEMP_RW_DMG" > /dev/null 2>&1
-  
-  # Copy app to mounted DMG
-  cp -R "$TEMP_DMG_DIR/CloudModel Desktop.app" "$TEMP_MOUNT_DIR/"
-  
-  # Remove attributes from app inside DMG
-  xattr -cr "${TEMP_MOUNT_DIR}/CloudModel Desktop.app" 2>/dev/null || true
-  
-  # Unmount
-  hdiutil detach "$TEMP_MOUNT_DIR" > /dev/null 2>&1
-  
-  # Convert to read-only compressed DMG
-  hdiutil convert "$TEMP_RW_DMG" \
-    -format UDZO \
-    -imagekey zlib-level=9 \
-    -o "$FINAL_DMG_PATH" > /dev/null 2>&1
+  if [ $USE_CREATE_DMG -eq 1 ]; then
+    # Use create-dmg for better macOS installation experience
+    create-dmg \
+      --volname "CloudModel Desktop" \
+      --window-pos 200 120 \
+      --window-size 800 400 \
+      --icon-size 100 \
+      --icon "CloudModel Desktop.app" 200 190 \
+      --hide-extension "CloudModel Desktop.app" \
+      --app-drop-link 600 185 \
+      "$FINAL_DMG_PATH" \
+      "$TEMP_DMG_DIR/"
+  else
+    # Manual DMG creation fallback
+    echo -e "${YELLOW}Using manual DMG creation...${NC}"
+    
+    # Create read-write DMG first
+    APP_SIZE=$(du -sm "$TEMP_DMG_DIR" | cut -f1)
+    DMG_SIZE=$((APP_SIZE + 20))
+    
+    hdiutil create -volname "CloudModel Desktop" \
+      -size "${DMG_SIZE}m" \
+      -type UDIF \
+      -fs "HFS+" \
+      -ov \
+      "$TEMP_RW_DMG"
+    
+    # Mount the RW DMG
+    rm -rf "$TEMP_MOUNT_DIR"
+    mkdir -p "$TEMP_MOUNT_DIR"
+    hdiutil attach -readwrite -mountpoint "$TEMP_MOUNT_DIR" "$TEMP_RW_DMG" > /dev/null 2>&1
+    
+    # Copy app to mounted DMG
+    cp -R "$TEMP_DMG_DIR/CloudModel Desktop.app" "$TEMP_MOUNT_DIR/"
+    
+    # Remove attributes from app inside DMG
+    xattr -cr "${TEMP_MOUNT_DIR}/CloudModel Desktop.app" 2>/dev/null || true
+    
+    # Unmount
+    hdiutil detach "$TEMP_MOUNT_DIR" > /dev/null 2>&1
+    
+    # Convert to read-only compressed DMG
+    hdiutil convert "$TEMP_RW_DMG" \
+      -format UDZO \
+      -imagekey zlib-level=9 \
+      -o "$FINAL_DMG_PATH" > /dev/null 2>&1
+    
+    rm -f "$TEMP_RW_DMG"
+    rm -rf "$TEMP_MOUNT_DIR"
+  fi
   
   rm -rf "$TEMP_DMG_DIR"
-  rm -f "$TEMP_RW_DMG"
-  rm -rf "$TEMP_MOUNT_DIR"
   
   # Verify the DMG was created
   if [ -f "$FINAL_DMG_PATH" ]; then
