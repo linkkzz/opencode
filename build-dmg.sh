@@ -117,16 +117,21 @@ fi
 # Create DMG
 if [ -d "$APP_PATH" ]; then
   echo -e "${YELLOW}Creating DMG from cleaned app...${NC}"
-  
+
   mkdir -p "$TEMP_DMG_DIR"
   mkdir -p "$FINAL_DMGS_DIR"
-  
+
   # Remove attributes from source app before copying
   xattr -cr "$APP_PATH" 2>/dev/null || true
-  
+
   cp -R "$APP_PATH" "$TEMP_DMG_DIR/"
-  
+
   if [ $USE_CREATE_DMG -eq 1 ]; then
+    # Remove existing DMG if it exists
+    if [ -f "$FINAL_DMG_PATH" ]; then
+      rm -f "$FINAL_DMG_PATH"
+    fi
+
     # Use create-dmg for better macOS installation experience
     create-dmg \
       --volname "CloudModel Desktop" \
