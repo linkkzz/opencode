@@ -68,30 +68,101 @@ echo "🔨 Building..."
 echo "========================================="
 echo ""
 
-bun x vite build
-echo -e "${GREEN}✓ Frontend built${NC}"
-
-bun x @tauri-apps/cli build --bundles app,dmg --target aarch64-apple-darwin
-echo -e "${GREEN}✓ Tauri app built${NC}"
-
-cd src-tauri/target/release/bundle/macos
-codesign --force --deep --sign - --options runtime "CloudModel Desktop.app"
-cd ../../../../../..
-echo -e "${GREEN}✓ App signed${NC}"
-
-if [ -f "$DMG_PATH" ]; then
-  codesign --force --deep --sign - --options runtime "$DMG_PATH"
-  echo -e "${GREEN}✓ DMG signed${NC}"
-fi
+bun x @tauri-apps/cli build \
+  --bundles app \
+  --target aarch64-apple-darwin \
+  --no-sign
+echo -e "${GREEN}✓ Tauri app built (unsigned)${NC}"
 
 echo ""
 echo "========================================="
 echo "📦 Build Artifacts:"
 echo "========================================="
-echo ""
 
-DMG_PATH="src-tauri/target/release/bundle/dmg/CloudModel Desktop_${NEW_VERSION}_aarch64.dmg"
-APP_PATH="src-tauri/target/release/bundle/macos/CloudModel Desktop.app"
+APP_PATH="src-tauri/target/aarch64-apple-darwin/release/bundle/macos/CloudModel Desktop.app"
+TEMP_DMG_DIR="/tmp/cloudmodel-dmg-$$"
+TEMP_RW_DMG="/tmp/cloudmodel-rw-$$$.dmg"
+TEMP_MOUNT_DIR="/tmp/cloudmodel-mount-$$"
+FINAL_DMGS_DIR="src-tauri/target/aarch64-apple-darwin/release/bundle/dmg"
+FINAL_DMG_PATH="${FINAL_DMGS_DIR}/CloudModel Desktop_${NEW_VERSION}_aarch64.dmg"
+
+# Remove Gatekeeper-blocking keys from Info.plist
+if [ -d "$APP_PATH" ]; then
+  INFO_PLIST="${APP_PATH}/Contents/Info.plist"
+  if [ -f "$INFO_PLIST" ]; then
+    plutil -remove CSResourcesFileMapped "$INFO_PLIST" 2>/dev/null || true
+    plutil -remove LSRequiresCarbon "$INFO_PLIST" 2>/dev/null || true
+    echo -e "${GREEN}✓ Removed Gatekeeper-blocking keys from Info.plist${NC}"
+  fi
+  
+  # Remove quarantine attributes and resign
+  echo -e "${YELLOW}Removing quarantine attributes from app...${NC}"
+  xattr -cr "$APP_PATH" 2>/dev/null || true
+  
+  echo -e "${YELLOW}Resigning app with ad-hoc signature...${NC}"
+  codesign --force --deep --sign - "$APP_PATH" 2>/dev/null || true
+  echo -e "${GREEN}✓ App processed for distribution${NC}"
+fi
+
+# Create DMG manually from cleaned app
+if [ -d "$APP_PATH" ]; then
+  echo -e "${YELLOW}Creating DMG from cleaned app...${NC}"
+  
+  rm -rf "$TEMP_DMG_DIR"
+  mkdir -p "$TEMP_DMG_DIR"
+  mkdir -p "$FINAL_DMGS_DIR"
+  
+  # Remove attributes from source app before copying
+  xattr -cr "$APP_PATH" 2>/dev/null || true
+  
+  cp -R "$APP_PATH" "$TEMP_DMG_DIR/"
+  
+  # Create read-write DMG first
+  APP_SIZE=$(du -sm "$TEMP_DMG_DIR" | cut -f1)
+  DMG_SIZE=$((APP_SIZE + 20))
+  
+  hdiutil create -volname "CloudModel Desktop" \
+    -size "${DMG_SIZE}m" \
+    -type UDIF \
+    -fs "HFS+" \
+    -ov \
+    "$TEMP_RW_DMG"
+  
+  # Mount the RW DMG
+  rm -rf "$TEMP_MOUNT_DIR"
+  mkdir -p "$TEMP_MOUNT_DIR"
+  hdiutil attach -readwrite -mountpoint "$TEMP_MOUNT_DIR" "$TEMP_RW_DMG" > /dev/null 2>&1
+  
+  # Copy app to mounted DMG
+  cp -R "$TEMP_DMG_DIR/CloudModel Desktop.app" "$TEMP_MOUNT_DIR/"
+  
+  # Remove attributes from app inside DMG
+  xattr -cr "${TEMP_MOUNT_DIR}/CloudModel Desktop.app" 2>/dev/null || true
+  
+  # Unmount
+  hdiutil detach "$TEMP_MOUNT_DIR" > /dev/null 2>&1
+  
+  # Convert to read-only compressed DMG
+  hdiutil convert "$TEMP_RW_DMG" \
+    -format UDZO \
+    -imagekey zlib-level=9 \
+    -o "$FINAL_DMG_PATH" > /dev/null 2>&1
+  
+  rm -rf "$TEMP_DMG_DIR"
+  rm -f "$TEMP_RW_DMG"
+  rm -rf "$TEMP_MOUNT_DIR"
+  
+  # Verify the DMG was created
+  if [ -f "$FINAL_DMG_PATH" ]; then
+    DMG_SIZE=$(ls -lh "$FINAL_DMG_PATH" | awk '{print $5}')
+    echo -e "${GREEN}✓ DMG created (${DMG_SIZE})${NC}"
+  else
+    echo -e "${RED}✗ Failed to create DMG${NC}"
+    exit 1
+  fi
+fi
+
+DMG_PATH="$FINAL_DMG_PATH"
 
 if [ -f "$DMG_PATH" ]; then
   echo "$(pwd)/${DMG_PATH}"

@@ -3,29 +3,35 @@ export namespace Locale {
     return str.replace(/\b\w/g, (c) => c.toUpperCase())
   }
 
-  export function time(input: number): string {
+  export function time(input: number, locale: string | string[] | undefined = undefined): string {
     const date = new Date(input)
-    return date.toLocaleTimeString(undefined, { timeStyle: "short" })
+    const useLocale = locale ?? (typeof navigator !== "undefined" ? navigator.language : undefined)
+    return date.toLocaleTimeString(useLocale, { timeStyle: "short" })
   }
 
-  export function datetime(input: number): string {
+  export function datetime(input: number, locale: string | string[] | undefined = undefined): string {
     const date = new Date(input)
-    const localTime = time(input)
-    const localDate = date.toLocaleDateString()
+    const useLocale = locale ?? (typeof navigator !== "undefined" ? navigator.language : undefined)
+    const localTime = time(input, useLocale)
+    const localDate = date.toLocaleDateString(useLocale)
     return `${localTime} · ${localDate}`
   }
 
-  export function todayTimeOrDateTime(input: number): string {
+  export function todayTimeOrDateTime(input: number, locale: string | string[] | undefined = undefined): string {
     const date = new Date(input)
     const now = new Date()
     const isToday =
       date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate()
 
     if (isToday) {
-      return time(input)
+      return time(input, locale)
     } else {
-      return datetime(input)
+      return datetime(input, locale)
     }
+  }
+
+  export function todayTimeOrDateTimeZh(input: number): string {
+    return todayTimeOrDateTime(input, "zh-CN")
   }
 
   export function number(num: number): string {

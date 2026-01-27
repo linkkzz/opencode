@@ -336,13 +336,7 @@ export const { use: useFile, provider: FileProvider } = createSimpleContext({
     }
 
     const stop = sdk.event.listen((e) => {
-      const event = e.details
-      if (event.type !== "file.watcher.updated") return
-      const path = normalize(event.properties.file)
-      if (!path) return
-      if (path.startsWith(".git/")) return
-      if (!store.file[path]) return
-      load(path, { force: true })
+      // File watcher functionality removed
     })
 
     const get = (input: string) => store.file[normalize(input)]

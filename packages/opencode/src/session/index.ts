@@ -12,7 +12,8 @@ import { Identifier } from "../id/id"
 import { Installation } from "../installation"
 
 import { Storage } from "../storage/storage"
-import { Log } from "../util/log"
+import { Log } from "@/util/log"
+import { Locale } from "@/util/locale"
 import { MessageV2 } from "./message-v2"
 import { Instance } from "../project/instance"
 import { SessionPrompt } from "./prompt"
@@ -27,11 +28,13 @@ import { Global } from "@/global"
 export namespace Session {
   const log = Log.create({ service: "session" })
 
-  const parentTitlePrefix = "New session - "
-  const childTitlePrefix = "Child session - "
+  const parentTitlePrefix = "新对话"
+  const childTitlePrefix = "子对话"
 
   function createDefaultTitle(isChild = false) {
-    return (isChild ? childTitlePrefix : parentTitlePrefix) + new Date().toISOString()
+    const now = Date.now()
+    const timeStr = Locale.todayTimeOrDateTimeZh(now)
+    return (isChild ? childTitlePrefix : parentTitlePrefix) + " - " + timeStr
   }
 
   function createHomePermissions() {
@@ -56,9 +59,8 @@ export namespace Session {
   }
 
   export function isDefaultTitle(title: string) {
-    return new RegExp(
-      `^(${parentTitlePrefix}|${childTitlePrefix})\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$`,
-    ).test(title)
+    const pattern = `^(新对话|子对话)\\s*-\\s*\\d{1,2}:\\d{2}(\\s*AM|\\s*PM)?(\\s*·\\s*\\d{1,2}/\\d{1,2}/\\d{4})?$`
+    return new RegExp(pattern, "i").test(title)
   }
 
   export const Info = z

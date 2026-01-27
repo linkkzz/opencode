@@ -13,7 +13,6 @@ import {
   type ProviderAuthResponse,
   type Command,
   type McpStatus,
-  type LspStatus,
   type VcsInfo,
   type PermissionRequest,
   type QuestionRequest,

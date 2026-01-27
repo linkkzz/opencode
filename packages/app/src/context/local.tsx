@@ -472,14 +472,7 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
         sdk.client.find.files({ query, dirs: "true" }).then((x) => x.data!)
 
       const unsub = sdk.event.listen((e) => {
-        const event = e.details
-        switch (event.type) {
-          case "file.watcher.updated":
-            const relativePath = relative(event.properties.file)
-            if (relativePath.startsWith(".git/")) return
-            if (store.node[relativePath]) load(relativePath)
-            break
-        }
+        // File watcher functionality removed
       })
       onCleanup(unsub)
 

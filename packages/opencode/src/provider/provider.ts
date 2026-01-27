@@ -815,6 +815,8 @@ export namespace Provider {
           ...options["headers"],
           ...model.headers,
         }
+      if (!options["headers"]) options["headers"] = {}
+      options["headers"]["X-Client-Source"] = "desktop"
 
       const key = Bun.hash.xxHash32(JSON.stringify({ npm: model.api.npm, options }))
       const existing = s.sdk.get(key)

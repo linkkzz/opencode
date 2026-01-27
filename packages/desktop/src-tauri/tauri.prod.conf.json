@@ -20,8 +20,7 @@
     "withGlobalTauri": true,
     "security": {
       "csp": null
-    },
-    "macOSPrivateApi": true
+    }
   },
   "bundle": {
     "createUpdaterArtifacts": true,
@@ -32,6 +31,7 @@
       "icons/prod/icon.icns",
       "icons/prod/icon.ico"
     ],
+    "macOS": {},
     "windows": {
       "nsis": {
         "installerIcon": "icons/prod/icon.ico"
