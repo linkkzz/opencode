@@ -18,7 +18,7 @@
         "title": "CloudModel Desktop",
         "url": "/",
         "decorations": true,
-        "dragDropEnabled": false,
+        "dragDropEnabled": true,
         "zoomHotkeysEnabled": true,
         "titleBarStyle": "Overlay",
         "hiddenTitle": true,

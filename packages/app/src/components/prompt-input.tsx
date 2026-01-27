@@ -56,6 +56,8 @@ import { Binary } from "@opencode-ai/util/binary"
 import { showToast } from "@opencode-ai/ui/toast"
 import { base64Encode } from "@opencode-ai/util/encode"
 
+let tauriDropUnlisten: (() => void) | null = null
+
 const ACCEPTED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/gif", "image/webp"]
 const ACCEPTED_FILE_TYPES = [...ACCEPTED_IMAGE_TYPES, "application/pdf"]
 
@@ -267,6 +269,29 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     reader.readAsDataURL(file)
   }
 
+  const addFileAttachment = (file: File) => {
+    const path = (file as File & { path?: string }).path || file.name
+
+    if (!path || ACCEPTED_FILE_TYPES.includes(file.type)) return
+
+    const currentPrompt = prompt.current()
+
+    const alreadyAttached = currentPrompt.some(
+      (part) => part.type === "file" && (part as FileAttachmentPart).path === path,
+    )
+
+    if (alreadyAttached) return
+
+    const attachment: FileAttachmentPart = {
+      type: "file",
+      path,
+      content: "@" + path,
+      start: 0,
+      end: path.length + 1,
+    }
+    addPart(attachment)
+  }
+
   const removeImageAttachment = (id: string) => {
     const current = prompt.current()
     const next = current.filter((part) => part.type !== "image" || part.id !== id)
@@ -315,6 +340,9 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     }
   }
 
+  // DOM drag drop handler (fallback for web environment)
+  // Note: When dragDropEnabled is true in Tauri, DOM drag events are blocked
+  // and onDragDropEvent is used instead (see onMount below)
   const handleGlobalDrop = async (event: DragEvent) => {
     if (dialog.active) return
 
@@ -327,19 +355,90 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
     for (const file of Array.from(dropped)) {
       if (ACCEPTED_FILE_TYPES.includes(file.type)) {
         await addImageAttachment(file)
+      } else {
+        addFileAttachment(file)
       }
     }
   }
 
-  onMount(() => {
-    document.addEventListener("dragover", handleGlobalDragOver)
-    document.addEventListener("dragleave", handleGlobalDragLeave)
-    document.addEventListener("drop", handleGlobalDrop)
+  onMount(async () => {
+    // Desktop environment: Use Tauri's onDragDropEvent for file path access
+    if (platform.platform === "desktop") {
+      try {
+        const tauri = (
+          window as unknown as {
+            __TAURI__?: {
+              webviewWindow?: {
+                getCurrentWebviewWindow?: () => {
+                  onDragDropEvent?: (callback: (event: any) => Promise<() => void>) => Promise<() => void>
+                }
+              }
+            }
+          }
+        ).__TAURI__
+
+        const getWebview = tauri?.webviewWindow?.getCurrentWebviewWindow
+        if (!getWebview) {
+          console.warn("Tauri webview API not available")
+          return
+        }
+
+        const webview = getWebview()
+        if (!webview?.onDragDropEvent) {
+          console.warn("Tauri onDragDropEvent not available")
+          return
+        }
+
+        tauriDropUnlisten = await webview.onDragDropEvent(async (event: any) => {
+          if (event.payload && event.payload.paths) {
+            const filePaths = event.payload.paths
+
+            for (const path of filePaths) {
+              const ext = path.split(".").pop()?.toLowerCase()
+              const isImage = ext && ["png", "jpg", "jpeg", "gif", "webp"].includes(ext)
+              const isPdf = ext === "pdf"
+
+              const currentPrompt = prompt.current()
+
+              const alreadyAttached = currentPrompt.some(
+                (part) => part.type === "file" && (part as FileAttachmentPart).path === path,
+              )
+
+              if (alreadyAttached) continue
+
+              if (isImage || isPdf) {
+                const attachment: FileAttachmentPart = {
+                  type: "file",
+                  path,
+                  content: "@" + path,
+                  start: 0,
+                  end: path.length + 1,
+                }
+                addPart(attachment)
+              } else {
+                const attachment: FileAttachmentPart = {
+                  type: "file",
+                  path,
+                  content: "@" + path,
+                  start: 0,
+                  end: path.length + 1,
+                }
+                addPart(attachment)
+              }
+            }
+          }
+          return () => {}
+        })
+      } catch (error) {
+        console.warn("Tauri file drop event listener not available:", error)
+      }
+    }
   })
   onCleanup(() => {
-    document.removeEventListener("dragover", handleGlobalDragOver)
-    document.removeEventListener("dragleave", handleGlobalDragLeave)
-    document.removeEventListener("drop", handleGlobalDrop)
+    if (tauriDropUnlisten) {
+      tauriDropUnlisten()
+      tauriDropUnlisten = null
+    }
   })
 
   createEffect(() => {
@@ -1356,7 +1455,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
           <div class="absolute inset-0 z-10 flex items-center justify-center bg-surface-raised-stronger-non-alpha/90 pointer-events-none">
             <div class="flex flex-col items-center gap-2 text-text-weak">
               <Icon name="photo" class="size-8" />
-              <span class="text-14-regular">Drop images or PDFs here</span>
+              <span class="text-14-regular">Drop images or files here</span>
             </div>
           </div>
         </Show>
