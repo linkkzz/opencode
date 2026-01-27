@@ -2,9 +2,11 @@ import { For, onCleanup, onMount, Show, Match, Switch, createMemo, createEffect,
 import { createMediaQuery } from "@solid-primitives/media"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 import { Dynamic } from "solid-js/web"
+import { useNavigate, useParams } from "@solidjs/router"
 import { useLocal } from "@/context/local"
-import { selectionFromLines, useFile, type SelectedLineRange } from "@/context/file"
-import { createStore } from "solid-js/store"
+import { useCommand } from "@/context/command"
+import { selectionFromLines, useFile, type SelectedLineRange, type FileSelection } from "@/context/file"
+import { createStore, produce } from "solid-js/store"
 import { PromptInput } from "@/components/prompt-input"
 import { SessionContextUsage } from "@/components/session-context-usage"
 import { IconButton } from "@opencode-ai/ui/icon-button"
@@ -27,17 +29,19 @@ import { useTerminal, type LocalPTY } from "@/context/terminal"
 import { useLayout } from "@/context/layout"
 import { Terminal } from "@/components/terminal"
 import { checksum, base64Encode, base64Decode } from "@opencode-ai/util/encode"
+import { getFilename, getDirectory } from "@opencode-ai/util/path"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { DialogSelectFile } from "@/components/dialog-select-file"
 import { DialogSelectModel } from "@/components/dialog-select-model"
 import { DialogSelectMcp } from "@/components/dialog-select-mcp"
 import { DialogFork } from "@/components/dialog-fork"
-import { useCommand } from "@/context/command"
-import { useNavigate, useParams } from "@solidjs/router"
 import { UserMessage } from "@opencode-ai/sdk/v2"
 import type { FileDiff } from "@opencode-ai/sdk/v2/client"
 import { useSDK } from "@/context/sdk"
-import { usePrompt } from "@/context/prompt"
+import { Identifier } from "@/utils/id"
+import { createOpencodeClient, type Message, type Part } from "@opencode-ai/sdk/v2/client"
+import { Binary } from "@opencode-ai/util/binary"
+import { usePrompt, type FileAttachmentPart, type AgentPart, type ImageAttachmentPart } from "@/context/prompt"
 import { extractPromptFromParts } from "@/utils/prompt"
 import { ConstrainDragYAxis, getDraggableId } from "@/utils/solid-dnd"
 import { usePermission } from "@/context/permission"
@@ -772,6 +776,216 @@ export default function Page() {
     setStore("activeTerminalDraggable", undefined)
   }
 
+  const handleRegenerate = async (messageID: string) => {
+    const parts = sync.data.part[messageID]
+    if (!parts) {
+      showToast({
+        title: "Failed to regenerate",
+        description: "Original message not found",
+      })
+      return
+    }
+
+    const currentModel = local.model.current()
+    const currentAgent = local.agent.current()
+    if (!currentModel || !currentAgent) {
+      showToast({
+        title: "Select an agent and model",
+        description: "Choose an agent and model before regenerating.",
+      })
+      return
+    }
+
+    const currentPrompt = extractPromptFromParts(parts, { directory: sdk.directory })
+
+    const newMessageID = Identifier.ascending("message")
+    const client = sdk.client
+
+    const model = {
+      modelID: currentModel.id,
+      providerID: currentModel.provider.id,
+    }
+    const agent = currentAgent.name
+    const variant = local.model.variant.current()
+
+    const errorMessage = (err: unknown) => {
+      if (err && typeof err === "object" && "data" in err) {
+        const data = (err as { data?: { message?: string } }).data
+        if (data?.message) return data.message
+      }
+      if (err instanceof Error) return err.message
+      return "Request failed"
+    }
+
+    const sessionDirectory = sdk.directory
+    const toAbsolutePath = (path: string) =>
+      path.startsWith("/") ? path : (sessionDirectory + "/" + path).replace("//", "/")
+
+    const fileAttachments = currentPrompt.filter((part) => part.type === "file") as FileAttachmentPart[]
+    const agentAttachments = currentPrompt.filter((part) => part.type === "agent") as AgentPart[]
+    const images = currentPrompt.filter((part) => part.type === "image") as ImageAttachmentPart[]
+
+    const fileAttachmentParts = fileAttachments.map((attachment) => {
+      const absolute = toAbsolutePath(attachment.path)
+      const query = attachment.selection
+        ? `?start=${attachment.selection.startLine}&end=${attachment.selection.endLine}`
+        : ""
+      return {
+        id: Identifier.ascending("part"),
+        type: "file" as const,
+        mime: "text/plain",
+        url: `file://${absolute}${query}`,
+        filename: getFilename(attachment.path),
+        source: {
+          type: "file" as const,
+          text: {
+            value: attachment.content,
+            start: attachment.start,
+            end: attachment.end,
+          },
+          path: absolute,
+        },
+      }
+    })
+
+    const agentAttachmentParts = agentAttachments.map((attachment) => ({
+      id: Identifier.ascending("part"),
+      type: "agent" as const,
+      name: attachment.name,
+      source: {
+        value: attachment.content,
+        start: attachment.start,
+        end: attachment.end,
+      },
+    }))
+
+    const usedUrls = new Set(fileAttachmentParts.map((part) => part.url))
+
+    const contextFileParts: Array<{
+      id: string
+      type: "file"
+      mime: string
+      url: string
+      filename?: string
+    }> = []
+
+    const addContextFile = (path: string, selection?: FileSelection) => {
+      const absolute = toAbsolutePath(path)
+      const query = selection ? `?start=${selection.startLine}&end=${selection.endLine}` : ""
+      const url = `file://${absolute}${query}`
+      if (usedUrls.has(url)) return
+      usedUrls.add(url)
+      contextFileParts.push({
+        id: Identifier.ascending("part"),
+        type: "file",
+        mime: "text/plain",
+        url,
+        filename: getFilename(path),
+      })
+    }
+
+    const currentContext = prompt.context.items()
+    currentContext.forEach((item) => {
+      if (item.type === "file") addContextFile(item.path, item.selection)
+    })
+
+    const imageAttachmentParts = images.map((attachment) => ({
+      type: "file" as const,
+      mime: attachment.mime,
+      url: attachment.dataUrl,
+      filename: attachment.filename,
+    }))
+
+    const textParts = currentPrompt.filter((part) => part.type === "text")
+    const text = textParts
+      .map((part) => ("content" in part ? part.content : ""))
+      .join("")
+      .trim()
+
+    let textPart: any = undefined
+    if (text.length > 0) {
+      textPart = {
+        type: "text" as const,
+        text,
+      }
+    }
+
+    let requestParts: any[] = []
+    if (contextFileParts.length > 0) requestParts.push(...contextFileParts)
+    if (fileAttachmentParts.length > 0) requestParts.push(...fileAttachmentParts)
+    if (imageAttachmentParts.length > 0) requestParts.push(...imageAttachmentParts)
+    if (agentAttachmentParts.length > 0) requestParts.push(...agentAttachmentParts)
+    if (textPart) requestParts.push(textPart)
+
+    const optimisticMessage: Message = {
+      id: newMessageID,
+      sessionID: params.id!,
+      role: "user",
+      time: { created: Date.now() },
+      agent,
+      model,
+    }
+
+    const optimisticParts = requestParts.map((part) => ({
+      ...part,
+      sessionID: params.id!,
+      messageID: newMessageID,
+    })) as unknown as Part[]
+
+    let optimistic = false
+    const addOptimisticMessage = () => {
+      optimistic = true
+      sync.set(
+        produce((draft) => {
+          const messages = draft.message[params.id!]
+          if (!messages) {
+            draft.message[params.id!] = [optimisticMessage]
+          } else {
+            const result = Binary.search(messages, newMessageID, (m) => m.id)
+            messages.splice(result.index, 0, optimisticMessage)
+          }
+          draft.part[newMessageID] = optimisticParts
+            .filter((p) => !!p?.id)
+            .slice()
+            .sort((a, b) => a.id.localeCompare(b.id))
+        }),
+      )
+    }
+
+    const removeOptimisticMessage = () => {
+      optimistic = false
+      sync.set(
+        produce((draft) => {
+          const messages = draft.message[params.id!]
+          if (messages) {
+            const result = Binary.search(messages, newMessageID, (m) => m.id)
+            if (result.found) messages.splice(result.index, 1)
+          }
+          delete draft.part[newMessageID]
+        }),
+      )
+    }
+
+    addOptimisticMessage()
+
+    client.session
+      .prompt({
+        sessionID: params.id!,
+        agent,
+        model,
+        messageID: newMessageID,
+        parts: requestParts,
+        variant,
+      })
+      .catch((err) => {
+        showToast({
+          title: "Failed to regenerate",
+          description: errorMessage(err),
+        })
+        if (optimistic) removeOptimisticMessage()
+      })
+  }
+
   const contextOpen = createMemo(() => tabs().active() === "context" || tabs().all().includes("context"))
   const openedTabs = createMemo(() =>
     tabs()
@@ -1243,6 +1457,7 @@ export default function Page() {
                                     onStepsExpandedToggle={() =>
                                       setStore("expanded", message.id, (open: boolean | undefined) => !open)
                                     }
+                                    onRegenerate={handleRegenerate}
                                     classes={{
                                       root: "min-w-0 w-full relative",
                                       content:

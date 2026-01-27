@@ -124,6 +124,7 @@ export function SessionTurn(
     stepsExpanded?: boolean
     onStepsExpandedToggle?: () => void
     onUserInteracted?: () => void
+    onRegenerate?: (messageID: string) => void
     classes?: {
       root?: string
       content?: string
@@ -585,16 +586,26 @@ export function SessionTurn(
                     {/* Response */}
                     <Show when={!working() && (response() || hasDiffs())}>
                       <div data-slot="session-turn-summary-section">
-                        <div data-slot="session-turn-summary-copy">
-                          <Tooltip value={responseCopied() ? "Copied!" : "Copy"} placement="top" gutter={8}>
-                            <IconButton
-                              icon={responseCopied() ? "check" : "copy"}
-                              variant="secondary"
-                              onClick={handleCopyResponse}
-                            />
-                          </Tooltip>
-                        </div>
                         <div data-slot="session-turn-summary-header">
+                          <div data-slot="session-turn-summary-copy" class="flex flex-row gap-2 mt-5">
+                            <Tooltip value={responseCopied() ? "已复制!" : "复制"} placement="top" gutter={8}>
+                              <IconButton
+                                icon={responseCopied() ? "check" : "copy"}
+                                variant="secondary"
+                                onClick={handleCopyResponse}
+                              />
+                            </Tooltip>
+                            <Show when={props.onRegenerate}>
+                              <Tooltip value="重新生成" placement="top" gutter={8}>
+                                <IconButton
+                                  icon="refresh"
+                                  variant="secondary"
+                                  disabled={working() || status().type === "retry"}
+                                  onClick={() => props.onRegenerate?.(props.messageID)}
+                                />
+                              </Tooltip>
+                            </Show>
+                          </div>
                           <h2 data-slot="session-turn-summary-title">Response</h2>
                           <Markdown
                             data-slot="session-turn-markdown"

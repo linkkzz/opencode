@@ -66,6 +66,7 @@ const icons = {
   dash: `<rect x="5" y="9.5" width="10" height="1" fill="currentColor"/>`,
   sun: `<circle cx="10" cy="10" r="3.2" stroke="currentColor"/><path d="M10 1.5V3.33317M10 16.6665V18.5M3.4373 3.8388L4.7692 5.17072M15.2308 14.8293L16.5627 16.1612M1.5 10H3.33333M16.6667 10H18.5M3.4373 16.1612L4.7692 14.8293M15.2308 5.17072L16.5627 3.8388" stroke="currentColor" stroke-linecap="square"/>`,
   moon: `<path d="M17.488 10.405a7.5 7.5 0 1 1-7.894-7.894c.337-.018.514.383.335.669a5 5 0 0 0 6.89 6.89c.286-.179.687-.002.669.335" stroke="currentColor"/>`,
+  refresh: `<path d="M16.666 10C16.666 13.6819 13.6812 16.6667 10 16.6667C6.3181 16.6667 3.33333 13.6819 3.33333 10C3.33333 6.3181 6.3181 3.33333 10 3.33333C12.3614 3.33333 14.4475 4.56119 15.6352 6.40848M16.5 3.33333V6.66667H13.1667" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>`,
 }
 
 export interface IconProps extends ComponentProps<"svg"> {
