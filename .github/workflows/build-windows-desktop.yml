@@ -59,8 +59,10 @@ jobs:
           New-Item -ItemType Directory -Force -Path packages/desktop/src-tauri/target/sidecar-unzipped
           Expand-Archive -Path packages/desktop/src-tauri/target/sidecar-temp/opencode-windows-x64.zip -DestinationPath packages/desktop/src-tauri/target/sidecar-unzipped
 
+          # 创建 sidecars 目标目录
+          New-Item -ItemType Directory -Force -Path packages/desktop/src-tauri/sidecars
+
           Write-Host "Checking extracted structure..."
-          Get-ChildItem -Recurse packages/desktop/src-tauri/target/sidecar-unzipped | Select-Object FullName, Name, Length
 
           # 先尝试找到 bin 目录
           $binPath = Get-ChildItem packages/desktop/src-tauri/target/sidecar-unzipped -Recurse -Directory | Where-Object { $_.Name -eq "bin" } | Select-Object -First 1
