@@ -192,6 +192,14 @@ export namespace Models {
       existingConfig.provider = {}
     }
 
+    const apiProviderIDs = new Set(Object.keys(apiProviders))
+    for (const providerID of Object.keys(existingConfig.provider)) {
+      if (!apiProviderIDs.has(providerID)) {
+        delete existingConfig.provider[providerID]
+        log.info("removed provider not in API response", { providerID })
+      }
+    }
+
     for (const [providerID, provider] of Object.entries(apiProviders)) {
       existingConfig.provider[providerID] = {
         id: provider.id,
