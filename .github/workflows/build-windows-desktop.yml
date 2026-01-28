@@ -50,6 +50,13 @@ jobs:
           }
           Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
 
+      - name: Create sidecar placeholder
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path packages/desktop/src-tauri/sidecars
+          # Create empty placeholder so Tauri doesn't complain
+          echo "" | Out-File -FilePath packages/desktop/src-tauri/sidecars/opencode-cli.exe -Encoding ASCII
+
       - name: Build Tauri App
         shell: powershell
         run: |
