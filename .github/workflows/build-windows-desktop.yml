@@ -51,7 +51,7 @@ jobs:
           $releaseInfo = Invoke-RestMethod -Uri $latestRelease
           $downloadUrl = ($releaseInfo.assets | Where-Object { $_.name -like "*windows-x64.zip" }).browser_download_url
 
-          Write-Output "Downloading from: $downloadUrl"
+          Write-Host "Downloading from: $downloadUrl"
 
           New-Item -ItemType Directory -Force -Path packages/desktop/src-tauri/target/sidecar-temp
           Invoke-WebRequest -Uri $downloadUrl -OutFile packages/desktop/src-tauri/target/sidecar-temp/opencode-windows-x64.zip
@@ -59,8 +59,27 @@ jobs:
           New-Item -ItemType Directory -Force -Path packages/desktop/src-tauri/target/sidecar-unzipped
           Expand-Archive -Path packages/desktop/src-tauri/target/sidecar-temp/opencode-windows-x64.zip -DestinationPath packages/desktop/src-tauri/target/sidecar-unzipped
 
+          Write-Host "Checking extracted structure..."
+          Get-ChildItem -Recurse packages/desktop/src-tauri/target/sidecar-unzipped | Select-Object FullName, Name, Length
+
+          # 先尝试找到 bin 目录
           $binPath = Get-ChildItem packages/desktop/src-tauri/target/sidecar-unzipped -Recurse -Directory | Where-Object { $_.Name -eq "bin" } | Select-Object -First 1
-          Copy-Item "$($binPath.FullName)/opencode.exe" packages/desktop/src-tauri/sidecars/opencode-cli.exe
+
+          if ($binPath) {
+            Write-Host "Found bin directory: $($binPath.FullName)"
+            Copy-Item "$($binPath.FullName)/opencode.exe" packages/desktop/src-tauri/sidecars/opencode-cli.exe
+          } else {
+            # 如果没有 bin 目录，直接找 opencode.exe
+            Write-Host "No bin directory found, searching for opencode.exe directly..."
+            $exePath = Get-ChildItem packages/desktop/src-tauri/target/sidecar-unzipped -Recurse -Filter "opencode.exe" | Select-Object -First 1
+            if ($exePath) {
+              Write-Host "Found opencode.exe: $($exePath.FullName)"
+              Copy-Item $exePath.FullName packages/desktop/src-tauri/sidecars/opencode-cli.exe
+            } else {
+              Write-Error "opencode.exe not found in extracted files!"
+              exit 1
+            }
+          }
 
           Write-Host "Sidecar prepared successfully"
 
