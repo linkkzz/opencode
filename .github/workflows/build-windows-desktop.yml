@@ -11,6 +11,7 @@ on:
     branches:
       - dev
       - build-windows-*
+      - opencode_staging
 
 jobs:
   build:
