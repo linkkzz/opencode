@@ -6,14 +6,14 @@
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420"
   },
-  "productName": "OpenCode",
-  "identifier": "ai.opencode.desktop",
+  "productName": "CloudModel Desktop",
+  "identifier": "ai.cloudmodel.desktop",
   "app": {
     "windows": [
       {
         "label": "main",
         "create": false,
-        "title": "OpenCode",
+        "title": "CloudModel Desktop",
         "url": "/",
         "decorations": true,
         "dragDropEnabled": false,
@@ -29,7 +29,6 @@
     }
   },
   "bundle": {
-    "createUpdaterArtifacts": true,
     "icon": [
       "icons/prod/32x32.png",
       "icons/prod/128x128.png",
@@ -39,6 +38,7 @@
     ],
     "active": true,
     "targets": ["nsis"],
+    "externalBin": ["sidecars/opencode-cli"],
     "macOS": {},
     "windows": {
       "nsis": {

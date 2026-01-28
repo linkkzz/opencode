@@ -4,13 +4,12 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version (e.g., 1.0.0) - if not specified, reads from package.json"
+        description: "Version (e.g., 1.0.0)"
         required: false
         type: string
   push:
     branches:
       - dev
-      - build-windows-*
       - opencode_staging
 
 jobs:
@@ -38,24 +37,35 @@ jobs:
         shell: powershell
         run: |
           if ("${{ inputs.version }}" -ne "") {
-            Write-Output "version=${{ inputs.version }}"
+            $version = "${{ inputs.version }}"
           } else {
-            $json = Get-Content packages/desktop/package.json -Raw | ConvertFrom-Json
-            Write-Output "version=$($json.version)"
-          }
-          $version = "${{ inputs.version }}"
-          if ($version -eq "") {
             $json = Get-Content packages/desktop/package.json -Raw | ConvertFrom-Json
             $version = $json.version
           }
           Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
 
-      - name: Create sidecar placeholder
+      - name: Download CLI Sidecar
         shell: powershell
         run: |
-          New-Item -ItemType Directory -Force -Path packages/desktop/src-tauri/sidecars
-          # Create empty placeholder so Tauri doesn't complain
-          echo "" | Out-File -FilePath packages/desktop/src-tauri/sidecars/opencode-cli.exe -Encoding ASCII
+          $latestRelease = "https://api.github.com/repos/anomalyco/opencode/releases/latest"
+          $releaseInfo = Invoke-RestMethod -Uri $latestRelease
+          $downloadUrl = ($releaseInfo.assets | Where-Object { $_.name -like "*windows-x64.zip" }).browser_download_url
+
+          Write-Output "Downloading from: $downloadUrl"
+
+          # 下载 zip 文件
+          New-Item -ItemType Directory -Force -Path packages/desktop/src-tauri/target/sidecar-temp
+          Invoke-WebRequest -Uri $downloadUrl -OutFile packages/desktop/src-tauri/target/sidecar-temp/opencode-windows-x64.zip
+
+          # 解压
+          New-Item -ItemType Directory -Force -Path packages/desktop/src-tauri/target/sidecar-unzipped
+          Expand-Archive -Path packages/desktop/src-tauri/target/sidecar-temp/opencode-windows-x64.zip -DestinationPath packages/desktop/src-tauri/target/sidecar-unzipped
+
+          # 找到 bin 目录并复制
+          $binPath = Get-ChildItem packages/desktop/src-tauri/target/sidecar-unzipped -Recurse -Directory | Where-Object { $_.Name -eq "bin" } | Select-Object -First 1
+          Copy-Item "$($binPath.FullName)/opencode.exe" packages/desktop/src-tauri/sidecars/opencode-cli.exe
+
+          Write-Output "✓ Sidecar prepared successfully"
 
       - name: Build Tauri App
         shell: powershell
@@ -78,6 +88,7 @@ jobs:
           echo "- **Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Target:** Windows x86_64" >> $GITHUB_STEP_SUMMARY
           echo "- **Bundle:** NSIS Installer" >> $GITHUB_STEP_SUMMARY
+          echo "- **Sidecar:** Downloaded from official releases" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📥 Download" >> $GITHUB_STEP_SUMMARY
           echo "The installer has been uploaded as an artifact. You can download it from the Actions page." >> $GITHUB_STEP_SUMMARY
