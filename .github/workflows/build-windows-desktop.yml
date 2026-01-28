@@ -69,14 +69,14 @@ jobs:
 
           if ($binPath) {
             Write-Host "Found bin directory: $($binPath.FullName)"
-            Copy-Item "$($binPath.FullName)/opencode.exe" packages/desktop/src-tauri/sidecars/opencode-cli.exe
+            Copy-Item "$($binPath.FullName)/opencode.exe" packages/desktop/src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe
           } else {
             # 如果没有 bin 目录，直接找 opencode.exe
             Write-Host "No bin directory found, searching for opencode.exe directly..."
             $exePath = Get-ChildItem packages/desktop/src-tauri/target/sidecar-unzipped -Recurse -Filter "opencode.exe" | Select-Object -First 1
             if ($exePath) {
               Write-Host "Found opencode.exe: $($exePath.FullName)"
-              Copy-Item $exePath.FullName packages/desktop/src-tauri/sidecars/opencode-cli.exe
+              Copy-Item $exePath.FullName packages/desktop/src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe
             } else {
               Write-Error "opencode.exe not found in extracted files!"
               exit 1
