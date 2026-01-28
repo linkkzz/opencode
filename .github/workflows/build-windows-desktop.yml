@@ -53,19 +53,16 @@ jobs:
 
           Write-Output "Downloading from: $downloadUrl"
 
-          # 下载 zip 文件
           New-Item -ItemType Directory -Force -Path packages/desktop/src-tauri/target/sidecar-temp
           Invoke-WebRequest -Uri $downloadUrl -OutFile packages/desktop/src-tauri/target/sidecar-temp/opencode-windows-x64.zip
 
-          # 解压
           New-Item -ItemType Directory -Force -Path packages/desktop/src-tauri/target/sidecar-unzipped
           Expand-Archive -Path packages/desktop/src-tauri/target/sidecar-temp/opencode-windows-x64.zip -DestinationPath packages/desktop/src-tauri/target/sidecar-unzipped
 
-          # 找到 bin 目录并复制
           $binPath = Get-ChildItem packages/desktop/src-tauri/target/sidecar-unzipped -Recurse -Directory | Where-Object { $_.Name -eq "bin" } | Select-Object -First 1
           Copy-Item "$($binPath.FullName)/opencode.exe" packages/desktop/src-tauri/sidecars/opencode-cli.exe
 
-          Write-Output "✓ Sidecar prepared successfully"
+          Write-Host "Sidecar prepared successfully"
 
       - name: Build Tauri App
         shell: powershell
@@ -82,16 +79,16 @@ jobs:
 
       - name: Generate Summary
         run: |
-          echo "## ✨ Build Completed Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "## Build Completed Successfully!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📦 Build Information" >> $GITHUB_STEP_SUMMARY
+          echo "### Build Information" >> $GITHUB_STEP_SUMMARY
           echo "- **Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Target:** Windows x86_64" >> $GITHUB_STEP_SUMMARY
           echo "- **Bundle:** NSIS Installer" >> $GITHUB_STEP_SUMMARY
           echo "- **Sidecar:** Downloaded from official releases" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📥 Download" >> $GITHUB_STEP_SUMMARY
+          echo "### Download" >> $GITHUB_STEP_SUMMARY
           echo "The installer has been uploaded as an artifact. You can download it from the Actions page." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### ⚠️ Note" >> $GITHUB_STEP_SUMMARY
+          echo "### Note" >> $GITHUB_STEP_SUMMARY
           echo "This build is unsigned. Users will see a Windows SmartScreen warning. Refer to the installation guide for instructions on how to proceed." >> $GITHUB_STEP_SUMMARY
