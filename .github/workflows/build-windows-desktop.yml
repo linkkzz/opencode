@@ -35,24 +35,33 @@ jobs:
 
       - name: Get version
         id: version
+        shell: powershell
         run: |
-          if [ -n "${{ inputs.version }}" ]; then
-            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            VERSION=$(cat packages/desktop/package.json | jq -r '.version')
-            echo "version=$VERSION" >> $GITHUB_OUTPUT
-          fi
+          if ("${{ inputs.version }}" -ne "") {
+            Write-Output "version=${{ inputs.version }}"
+          } else {
+            $json = Get-Content packages/desktop/package.json -Raw | ConvertFrom-Json
+            Write-Output "version=$($json.version)"
+          }
+          $version = "${{ inputs.version }}"
+          if ($version -eq "") {
+            $json = Get-Content packages/desktop/package.json -Raw | ConvertFrom-Json
+            $version = $json.version
+          }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
 
       - name: Download CLI Sidecar
+        shell: powershell
         run: |
           cd packages/desktop
           gh release download --pattern "opencode-windows-x64" --dir src-tauri/target/sidecar-temp
-          mkdir -p src-tauri/sidecars
-          unzip src-tauri/target/sidecar-temp/opencode-windows-x64.zip -d src-tauri/target/sidecar-unzipped
-          cp src-tauri/target/sidecar-unzipped/*/bin/opencode.exe src-tauri/sidecars/opencode-cli.exe
-          echo "Sidecar prepared successfully"
+          New-Item -ItemType Directory -Force -Path src-tauri/sidecars
+          Expand-Archive -Path src-tauri/target/sidecar-temp/opencode-windows-x64.zip -DestinationPath src-tauri/target/sidecar-unzipped
+          Copy-Item src-tauri/target/sidecar-unzipped/*/bin/opencode.exe src-tauri/sidecars/opencode-cli.exe
+          Write-Output "Sidecar prepared successfully"
 
       - name: Build Tauri App
+        shell: powershell
         run: |
           cd packages/desktop
           bun x @tauri-apps/cli build --bundles nsis --target x86_64-pc-windows-msvc --config ./src-tauri/tauri.windows.conf.json
