@@ -50,18 +50,6 @@ jobs:
           }
           Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version"
 
-      - name: Download CLI Sidecar
-        shell: powershell
-        run: |
-          cd packages/desktop
-          gh release download latest --repo anomalyco/opencode --pattern opencode-windows-x64.zip --dir src-tauri/target/sidecar-temp
-          New-Item -ItemType Directory -Force -Path src-tauri/sidecars
-          Expand-Archive -Path src-tauri/target/sidecar-temp/opencode-windows-x64.zip -DestinationPath src-tauri/target/sidecar-unzipped
-          Copy-Item src-tauri/target/sidecar-unzipped/*/bin/opencode.exe src-tauri/sidecars/opencode-cli.exe
-          Write-Output "Sidecar prepared successfully"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build Tauri App
         shell: powershell
         run: |
