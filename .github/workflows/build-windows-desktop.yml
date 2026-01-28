@@ -1,0 +1,79 @@
+name: Build Windows Desktop
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (e.g., 1.0.0) - if not specified, reads from package.json"
+        required: false
+        type: string
+  push:
+    branches:
+      - dev
+      - build-windows-*
+
+jobs:
+  build:
+    runs-on: blacksmith-4vcpu-windows-2025
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd packages/desktop
+          bun install
+
+      - name: Get version
+        id: version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            VERSION=$(cat packages/desktop/package.json | jq -r '.version')
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download CLI Sidecar
+        run: |
+          cd packages/desktop
+          gh release download --pattern "opencode-windows-x64" --dir src-tauri/target/sidecar-temp
+          mkdir -p src-tauri/sidecars
+          unzip src-tauri/target/sidecar-temp/opencode-windows-x64.zip -d src-tauri/target/sidecar-unzipped
+          cp src-tauri/target/sidecar-unzipped/*/bin/opencode.exe src-tauri/sidecars/opencode-cli.exe
+          echo "Sidecar prepared successfully"
+
+      - name: Build Tauri App
+        run: |
+          cd packages/desktop
+          bun x @tauri-apps/cli build --bundles nsis --target x86_64-pc-windows-msvc --config ./src-tauri/tauri.windows.conf.json
+
+      - name: Upload Installer Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencode-desktop-windows-x64-${{ steps.version.outputs.version }}
+          path: packages/desktop/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+          retention-days: 90
+
+      - name: Generate Summary
+        run: |
+          echo "## ✨ Build Completed Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Build Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target:** Windows x86_64" >> $GITHUB_STEP_SUMMARY
+          echo "- **Bundle:** NSIS Installer" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📥 Download" >> $GITHUB_STEP_SUMMARY
+          echo "The installer has been uploaded as an artifact. You can download it from the Actions page." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⚠️ Note" >> $GITHUB_STEP_SUMMARY
+          echo "This build is unsigned. Users will see a Windows SmartScreen warning. Refer to the installation guide for instructions on how to proceed." >> $GITHUB_STEP_SUMMARY
