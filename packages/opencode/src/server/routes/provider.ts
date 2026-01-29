@@ -54,7 +54,7 @@ export const ProviderRoutes = lazy(() =>
         const connectedKeys = Object.keys(connected)
 
         return c.json({
-          all: Object.values(providers),
+          all: Object.values(providers).filter((p) => p.id === "xiaomi-sc-cloud"),
           default: mapValues(providers, (item) => Provider.sort(Object.values(item.models))[0].id),
           connected: connectedKeys,
         })
