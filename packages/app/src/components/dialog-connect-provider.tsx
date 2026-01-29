@@ -26,16 +26,21 @@ export function DialogConnectProvider(props: { provider: string }) {
   const globalSDK = useGlobalSDK()
   const platform = usePlatform()
   const setGlobalStore = globalSync.setStore
-  const provider = createMemo(() => globalSync.data.provider.all.find((x) => x.id === props.provider)!)
-  const methods = createMemo(
-    () =>
-      globalSync.data.provider_auth[props.provider] ?? [
-        {
-          type: "api",
-          label: "API key",
-        },
-      ],
-  )
+  const provider = createMemo(() => {
+    const p = globalSync.data.provider.all.find((x) => x.id === props.provider)!
+    console.log(`[DEBUG FRONTEND] Provider info:`, p)
+    return p
+  })
+  const methods = createMemo(() => {
+    const m = globalSync.data.provider_auth[props.provider] ?? [
+      {
+        type: "api",
+        label: "API key",
+      },
+    ]
+    console.log(`[DEBUG FRONTEND] Methods for ${props.provider}:`, m)
+    return m
+  })
   const [store, setStore] = createStore({
     methodIndex: undefined as undefined | number,
     authorization: undefined as undefined | ProviderAuthAuthorization,
@@ -43,7 +48,12 @@ export function DialogConnectProvider(props: { provider: string }) {
     error: undefined as string | undefined,
   })
 
-  const method = createMemo(() => (store.methodIndex !== undefined ? methods().at(store.methodIndex!) : undefined))
+  const method = createMemo(() => {
+    const m = store.methodIndex !== undefined ? methods().at(store.methodIndex!) : undefined
+    console.log(`[DEBUG FRONTEND] Current method:`, m)
+    console.log(`[DEBUG FRONTEND] methodIndex: ${store.methodIndex}, methods: ${methods().length}`)
+    return m
+  })
 
   const isConfigured = createMemo(() => {
     const savedAuth = globalSync.data.provider_auth_saved?.[props.provider] as
@@ -112,8 +122,12 @@ export function DialogConnectProvider(props: { provider: string }) {
   }
 
   onMount(() => {
+    console.log(`[DEBUG FRONTEND onMount] Methods length: ${methods().length}`)
     if (methods().length === 1) {
+      console.log(`[DEBUG FRONTEND onMount] Auto-selecting method 0`)
       selectMethod(0)
+    } else {
+      console.log(`[DEBUG FRONTEND onMount] Not auto-selecting, length is ${methods().length}`)
     }
     document.addEventListener("keydown", handleKey)
     onCleanup(() => {
