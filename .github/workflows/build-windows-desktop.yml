@@ -53,14 +53,18 @@ jobs:
           $releaseInfo = gh release view --repo anomalyco/opencode --json assets
 
           Write-Host "Searching for windows-x64.zip in assets..."
+          Write-Host "Total assets: $($releaseInfo.assets.Count)"
+
           $asset = $releaseInfo.assets | Where-Object { $_.name -like "*windows-x64.zip" }
 
           if ($asset) {
+            Write-Host "Found asset: $($asset.Count) matches"
             $downloadUrl = $asset.browser_download_url
+            Write-Host "Download URL: $downloadUrl"
           } else {
             Write-Error "Failed to find windows-x64.zip download URL"
             Write-Host "Available assets:"
-            $releaseInfo.assets | ForEach-Object { Write-Host "  - $($_.name)" }
+            $releaseInfo.assets | ForEach-Object { Write-Host "  - $($_.name) ($($_.size) bytes)" }
             exit 1
           }
 
