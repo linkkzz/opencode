@@ -51,9 +51,13 @@ jobs:
         run: |
           # Use GitHub CLI to get latest release (authenticated, no rate limit issues)
           $releaseInfo = gh release view --repo anomalyco/opencode --json assets
-          $downloadUrl = ($releaseInfo.assets | Where-Object { $_.name -like "*windows-x64.zip" }).browser_download_url
 
-          if (-not $downloadUrl) {
+          Write-Host "Searching for windows-x64.zip in assets..."
+          $asset = $releaseInfo.assets | Where-Object { $_.name -like "*windows-x64.zip" }
+
+          if ($asset) {
+            $downloadUrl = $asset.browser_download_url
+          } else {
             Write-Error "Failed to find windows-x64.zip download URL"
             Write-Host "Available assets:"
             $releaseInfo.assets | ForEach-Object { Write-Host "  - $($_.name)" }
