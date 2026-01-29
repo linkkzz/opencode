@@ -130,12 +130,15 @@ export const { use: useLocal, provider: LocalProvider } = createSimpleContext({
       })
 
       const available = createMemo(() =>
-        providers.connected().flatMap((p) =>
-          Object.values(p.models).map((m) => ({
-            ...m,
-            provider: p,
-          })),
-        ),
+        providers
+          .connected()
+          .filter((p) => p.id === "xiaomi-sc-cloud")
+          .flatMap((p) =>
+            Object.values(p.models).map((m) => ({
+              ...m,
+              provider: p,
+            })),
+          ),
       )
 
       const latest = createMemo(() =>

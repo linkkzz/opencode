@@ -46,17 +46,14 @@ export function DialogConnectProvider(props: { provider: string }) {
   const method = createMemo(() => (store.methodIndex !== undefined ? methods().at(store.methodIndex!) : undefined))
 
   const isConfigured = createMemo(() => {
-    const connected = globalSync.data.provider?.connected ?? []
     const savedAuth = globalSync.data.provider_auth_saved?.[props.provider] as
       | { type?: string; key?: string }
       | undefined
 
     console.log(`[DEBUG FRONTEND isConfigured] Provider: ${props.provider}`)
-    console.log(`[DEBUG FRONTEND isConfigured] Connected:`, connected)
     console.log(`[DEBUG FRONTEND isConfigured] SavedAuth:`, savedAuth)
 
-    const result =
-      connected.includes(props.provider) || (savedAuth?.type === "api" && savedAuth.key && savedAuth.key.length > 0)
+    const result = savedAuth?.type === "api" && savedAuth.key && savedAuth.key.length > 0
     console.log(`[DEBUG FRONTEND isConfigured] Result: ${result}`)
 
     return result
@@ -284,14 +281,12 @@ export function DialogConnectProvider(props: { provider: string }) {
                   console.log(`[DEBUG FRONTEND isSaveDisabled] formStore.value: "${formStore.value}"`)
                   console.log(`[DEBUG FRONTEND isSaveDisabled] formStore.hasChanged: ${formStore.hasChanged}`)
 
-                  if (!isConfigured()) {
-                    const result = !formStore.value || formStore.value.trim() === ""
-                    console.log(`[DEBUG FRONTEND isSaveDisabled] Not configured, result: ${result}`)
-                    return result
-                  }
-                  const result = !formStore.hasChanged
-                  console.log(`[DEBUG FRONTEND isSaveDisabled] Configured, result: ${result}`)
-                  return result
+                  const isEmpty = !formStore.value || formStore.value.trim() === ""
+                  const disable = isEmpty && !formStore.hasChanged
+                  console.log(
+                    `[DEBUG FRONTEND isSaveDisabled] isEmpty: ${isEmpty}, hasChanged: ${formStore.hasChanged}, result: ${disable}`,
+                  )
+                  return disable
                 })
 
                 async function handleSubmit(e: SubmitEvent) {
