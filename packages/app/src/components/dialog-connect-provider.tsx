@@ -50,9 +50,16 @@ export function DialogConnectProvider(props: { provider: string }) {
     const savedAuth = globalSync.data.provider_auth_saved?.[props.provider] as
       | { type?: string; key?: string }
       | undefined
-    return (
+
+    console.log(`[DEBUG FRONTEND isConfigured] Provider: ${props.provider}`)
+    console.log(`[DEBUG FRONTEND isConfigured] Connected:`, connected)
+    console.log(`[DEBUG FRONTEND isConfigured] SavedAuth:`, savedAuth)
+
+    const result =
       connected.includes(props.provider) || (savedAuth?.type === "api" && savedAuth.key && savedAuth.key.length > 0)
-    )
+    console.log(`[DEBUG FRONTEND isConfigured] Result: ${result}`)
+
+    return result
   })
 
   async function selectMethod(index: number) {
@@ -272,10 +279,19 @@ export function DialogConnectProvider(props: { provider: string }) {
                 )
 
                 const isSaveDisabled = createMemo(() => {
+                  console.log(`[DEBUG FRONTEND isSaveDisabled] Checking...`)
+                  console.log(`[DEBUG FRONTEND isSaveDisabled] isConfigured(): ${isConfigured()}`)
+                  console.log(`[DEBUG FRONTEND isSaveDisabled] formStore.value: "${formStore.value}"`)
+                  console.log(`[DEBUG FRONTEND isSaveDisabled] formStore.hasChanged: ${formStore.hasChanged}`)
+
                   if (!isConfigured()) {
-                    return !formStore.value || formStore.value.trim() === ""
+                    const result = !formStore.value || formStore.value.trim() === ""
+                    console.log(`[DEBUG FRONTEND isSaveDisabled] Not configured, result: ${result}`)
+                    return result
                   }
-                  return !formStore.hasChanged
+                  const result = !formStore.hasChanged
+                  console.log(`[DEBUG FRONTEND isSaveDisabled] Configured, result: ${result}`)
+                  return result
                 })
 
                 async function handleSubmit(e: SubmitEvent) {
@@ -356,6 +372,7 @@ export function DialogConnectProvider(props: { provider: string }) {
                         {isConfigured() ? "更新" : "保存"}
                       </Button>
                     </div>
+                    <div class="text-12-regular text-text-weak">[DEBUG] isSaveDisabled: {String(isSaveDisabled())}</div>
                   </form>
                 )
               })}

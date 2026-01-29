@@ -593,48 +593,34 @@ function createGlobalSync() {
         return globalSDK.client.provider.list().then((x) => {
           const data = x.data!
           console.log(`[DEBUG GLOBAL SYNC] Received provider data:`, data)
-          console.log(`[DEBUG GLOBAL SYNC] Provider count: ${data.all?.length ?? 0}`)
-          console.log(`[DEBUG GLOBAL SYNC] Provider IDs:`, data.all?.map((p) => p.id)?.join(", "))
-          console.log(`[DEBUG GLOBAL SYNC] Connected providers:`, data.connected?.join(", "))
+          console.log(`[DEBUG GLOBAL SYNC] Provider count (before filter): ${data.all?.length ?? 0}`)
+          console.log(`[DEBUG GLOBAL SYNC] Provider IDs (before filter):`, data.all?.map((p) => p.id)?.join(", "))
+          console.log(`[DEBUG GLOBAL SYNC] Connected providers (before filter):`, data.connected?.join(", "))
 
           const filteredProviders = {
             ...data,
-            all: data.all.map((provider) => ({
-              ...provider,
-              models: Object.fromEntries(
-                Object.entries(provider.models).filter(([, info]) => info.status !== "deprecated"),
-              ),
-            })),
+            all: data.all
+              .filter((provider) => provider.id === "xiaomi-sc-cloud")
+              .map((provider) => ({
+                ...provider,
+                models: Object.fromEntries(
+                  Object.entries(provider.models).filter(([, info]) => info.status !== "deprecated"),
+                ),
+              })),
+            connected: data.connected.filter((providerID) => providerID === "xiaomi-sc-cloud"),
           }
 
-          console.log(`[DEBUG GLOBAL SYNC] Setting provider in global store`)
-          console.log(`[DEBUG GLOBAL SYNC] Providers in store:`, filteredProviders.all.map((p) => p.id).join(", "))
-
-          setGlobalStore("provider", filteredProviders)
-        })
-      }),
-      retry(() => {
-        console.log(`[DEBUG GLOBAL SYNC] Fetching provider list from ${globalSDK.url}/provider`)
-        return globalSDK.client.provider.list().then((x) => {
-          const data = x.data!
-          console.log(`[DEBUG GLOBAL SYNC] Received provider data:`, data)
-          console.log(`[DEBUG GLOBAL SYNC] Provider count: ${data.all?.length ?? 0}`)
-          console.log(`[DEBUG GLOBAL SYNC] Provider IDs:`, data.all?.map((p) => p.id)?.join(", "))
-          console.log(`[DEBUG GLOBAL SYNC] Connected providers:`, data.connected?.join(", "))
-
-          const filteredProviders = {
-            ...data,
-            all: data.all.map((provider) => ({
-              ...provider,
-              models: Object.fromEntries(
-                Object.entries(provider.models).filter(([, info]) => info.status !== "deprecated"),
-              ),
-            })),
-          }
+          console.log(`[DEBUG GLOBAL SYNC] Provider count (after filter): ${filteredProviders.all?.length ?? 0}`)
+          console.log(
+            `[DEBUG GLOBAL SYNC] Provider IDs (after filter):`,
+            filteredProviders.all?.map((p) => p.id)?.join(", "),
+          )
+          console.log(
+            `[DEBUG GLOBAL SYNC] Connected providers (after filter):`,
+            filteredProviders.connected?.join(", "),
+          )
 
           console.log(`[DEBUG GLOBAL SYNC] Setting provider in global store`)
-          console.log(`[DEBUG GLOBAL SYNC] Providers in store:`, filteredProviders.all.map((p) => p.id).join(", "))
-
           setGlobalStore("provider", filteredProviders)
         })
       }),
