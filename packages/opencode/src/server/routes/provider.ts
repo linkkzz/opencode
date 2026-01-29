@@ -99,7 +99,15 @@ export const ProviderRoutes = lazy(() =>
         },
       }),
       async (c) => {
-        return c.json(await Auth.all())
+        console.log("[DEBUG SERVER] Fetching saved auth...")
+        try {
+          const authData = await Auth.all()
+          console.log("[DEBUG SERVER] Auth data retrieved successfully:", Object.keys(authData))
+          return c.json(authData)
+        } catch (error) {
+          console.error("[DEBUG SERVER] Error fetching saved auth:", error)
+          return c.json({})
+        }
       },
     )
     .post(
