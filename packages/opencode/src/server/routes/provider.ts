@@ -51,7 +51,7 @@ export const ProviderRoutes = lazy(() =>
         const providers = mapValues(filteredProviders, (x) => Provider.fromModelsProvider(x))
 
         const connected = await Provider.list()
-        const connectedKeys = Object.keys(connected)
+        const connectedKeys = Object.keys(connected).filter((key) => key === "xiaomi-sc-cloud")
 
         return c.json({
           all: Object.values(providers).filter((p) => p.id === "xiaomi-sc-cloud"),
