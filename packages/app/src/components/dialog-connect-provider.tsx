@@ -282,11 +282,9 @@ export function DialogConnectProvider(props: { provider: string }) {
                   console.log(`[DEBUG FRONTEND isSaveDisabled] formStore.hasChanged: ${formStore.hasChanged}`)
 
                   const isEmpty = !formStore.value || formStore.value.trim() === ""
-                  const disable = isEmpty && !formStore.hasChanged
-                  console.log(
-                    `[DEBUG FRONTEND isSaveDisabled] isEmpty: ${isEmpty}, hasChanged: ${formStore.hasChanged}, result: ${disable}`,
-                  )
-                  return disable
+                  const result = isEmpty
+                  console.log(`[DEBUG FRONTEND isSaveDisabled] isEmpty: ${isEmpty}, result: ${result}`)
+                  return result
                 })
 
                 async function handleSubmit(e: SubmitEvent) {
