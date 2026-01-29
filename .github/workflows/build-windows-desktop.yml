@@ -46,10 +46,19 @@ jobs:
 
       - name: Download CLI Sidecar
         shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           # Use GitHub CLI to get latest release (authenticated, no rate limit issues)
           $releaseInfo = gh release view --repo anomalyco/opencode --json assets
           $downloadUrl = ($releaseInfo.assets | Where-Object { $_.name -like "*windows-x64.zip" }).browser_download_url
+
+          if (-not $downloadUrl) {
+            Write-Error "Failed to find windows-x64.zip download URL"
+            Write-Host "Available assets:"
+            $releaseInfo.assets | ForEach-Object { Write-Host "  - $($_.name)" }
+            exit 1
+          }
 
           Write-Host "Downloading from: $downloadUrl"
 
@@ -79,6 +88,8 @@ jobs:
               Copy-Item $exePath.FullName packages/desktop/src-tauri/sidecars/opencode-cli-x86_64-pc-windows-msvc.exe
             } else {
               Write-Error "opencode.exe not found in extracted files!"
+              Write-Host "Extracted structure:"
+              Get-ChildItem packages/desktop/src-tauri/target/sidecar-unzipped -Recurse | ForEach-Object { Write-Host "  $($_.FullName)" }
               exit 1
             }
           }
