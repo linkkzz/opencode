@@ -588,10 +588,16 @@ function createGlobalSync() {
           setGlobalStore("project", projects)
         }),
       ),
-      retry(() =>
-        globalSDK.client.provider.list().then((x) => {
+      retry(() => {
+        console.log(`[DEBUG GLOBAL SYNC] Fetching provider list from ${globalSDK.url}/provider`)
+        return globalSDK.client.provider.list().then((x) => {
           const data = x.data!
-          setGlobalStore("provider", {
+          console.log(`[DEBUG GLOBAL SYNC] Received provider data:`, data)
+          console.log(`[DEBUG GLOBAL SYNC] Provider count: ${data.all?.length ?? 0}`)
+          console.log(`[DEBUG GLOBAL SYNC] Provider IDs:`, data.all?.map((p) => p.id)?.join(", "))
+          console.log(`[DEBUG GLOBAL SYNC] Connected providers:`, data.connected?.join(", "))
+
+          const filteredProviders = {
             ...data,
             all: data.all.map((provider) => ({
               ...provider,
@@ -599,23 +605,55 @@ function createGlobalSync() {
                 Object.entries(provider.models).filter(([, info]) => info.status !== "deprecated"),
               ),
             })),
-          })
-        }),
-      ),
-      retry(() =>
-        globalSDK.client.provider.auth().then((x) => {
-          setGlobalStore("provider_auth", x.data ?? {})
-        }),
-      ),
-      retry(() =>
-        (platform.fetch ?? fetch)(`${globalSDK.url}/provider/auth/saved`)
+          }
+
+          console.log(`[DEBUG GLOBAL SYNC] Setting provider in global store`)
+          console.log(`[DEBUG GLOBAL SYNC] Providers in store:`, filteredProviders.all.map((p) => p.id).join(", "))
+
+          setGlobalStore("provider", filteredProviders)
+        })
+      }),
+      retry(() => {
+        console.log(`[DEBUG GLOBAL SYNC] Fetching provider list from ${globalSDK.url}/provider`)
+        return globalSDK.client.provider.list().then((x) => {
+          const data = x.data!
+          console.log(`[DEBUG GLOBAL SYNC] Received provider data:`, data)
+          console.log(`[DEBUG GLOBAL SYNC] Provider count: ${data.all?.length ?? 0}`)
+          console.log(`[DEBUG GLOBAL SYNC] Provider IDs:`, data.all?.map((p) => p.id)?.join(", "))
+          console.log(`[DEBUG GLOBAL SYNC] Connected providers:`, data.connected?.join(", "))
+
+          const filteredProviders = {
+            ...data,
+            all: data.all.map((provider) => ({
+              ...provider,
+              models: Object.fromEntries(
+                Object.entries(provider.models).filter(([, info]) => info.status !== "deprecated"),
+              ),
+            })),
+          }
+
+          console.log(`[DEBUG GLOBAL SYNC] Setting provider in global store`)
+          console.log(`[DEBUG GLOBAL SYNC] Providers in store:`, filteredProviders.all.map((p) => p.id).join(", "))
+
+          setGlobalStore("provider", filteredProviders)
+        })
+      }),
+      retry(() => {
+        console.log(`[DEBUG GLOBAL SYNC] Fetching saved auth from: ${globalSDK.url}/provider/auth/saved`)
+        return (platform.fetch ?? fetch)(`${globalSDK.url}/provider/auth/saved`)
           .then((x) => x.json())
-          .then((data) => setGlobalStore("provider_auth_saved", data ?? {}))
+          .then((data) => {
+            console.log(`[DEBUG GLOBAL SYNC] Received saved auth data:`, data)
+            console.log(`[DEBUG GLOBAL SYNC] Providers in saved auth:`, Object.keys(data ?? {}))
+            setGlobalStore("provider_auth_saved", data ?? {})
+            console.log(`[DEBUG GLOBAL SYNC] Set provider_auth_saved in global store`)
+            return data
+          })
           .catch((e) => {
-            console.error("Failed to fetch saved auth:", e)
+            console.error("[DEBUG GLOBAL SYNC] Failed to fetch saved auth:", e)
             setGlobalStore("provider_auth_saved", {})
-          }),
-      ),
+          })
+      }),
     ])
       .then(() => setGlobalStore("ready", true))
       .catch((e) => setGlobalStore("error", e))

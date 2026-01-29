@@ -47,8 +47,8 @@ jobs:
       - name: Download CLI Sidecar
         shell: powershell
         run: |
-          $latestRelease = "https://api.github.com/repos/anomalyco/opencode/releases/latest"
-          $releaseInfo = Invoke-RestMethod -Uri $latestRelease
+          # Use GitHub CLI to get latest release (authenticated, no rate limit issues)
+          $releaseInfo = gh release view --repo anomalyco/opencode --json assets
           $downloadUrl = ($releaseInfo.assets | Where-Object { $_.name -like "*windows-x64.zip" }).browser_download_url
 
           Write-Host "Downloading from: $downloadUrl"
