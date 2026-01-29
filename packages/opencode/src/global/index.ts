@@ -10,6 +10,15 @@ const cache = path.join(xdgCache!, app)
 const config = path.join(xdgConfig!, app)
 const state = path.join(xdgState!, app)
 
+console.log(`[DEBUG] Platform: ${process.platform}`)
+console.log(`[DEBUG] Data dir: ${data}`)
+console.log(`[DEBUG] Cache dir: ${cache}`)
+console.log(`[DEBUG] Config dir: ${config}`)
+console.log(`[DEBUG] State dir: ${state}`)
+console.log(`[DEBUG] Config file path: ${path.join(config, "opencode.json")}`)
+console.log(`[DEBUG] Auth file path: ${path.join(data, "auth.json")}`)
+console.log(`[DEBUG] Models cache path: ${path.join(cache, "models.json")}`)
+
 export namespace Global {
   export const Path = {
     // Allow override via OPENCODE_TEST_HOME for test isolation

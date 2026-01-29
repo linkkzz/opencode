@@ -118,17 +118,33 @@ export function DialogConnectProvider(props: { provider: string }) {
   })
 
   async function complete() {
+    console.log(`[DEBUG FRONTEND] Starting complete() for provider: ${props.provider}`)
+
     await globalSDK.client.global.dispose()
 
+    console.log(`[DEBUG FRONTEND] Fetching saved auth from: ${globalSDK.url}/provider/auth/saved`)
     // 重新加载已保存的认证数据
     try {
       const response = await fetch(`${globalSDK.url}/provider/auth/saved`)
       const data = await response.json()
+      console.log(`[DEBUG FRONTEND] Received saved auth data:`, data)
+      console.log(`[DEBUG FRONTEND] Auth providers in response:`, Object.keys(data ?? {}))
+      console.log(`[DEBUG FRONTEND] Auth for current provider ${props.provider}:`, data?.[props.provider])
+      console.log(`[DEBUG FRONTEND] Setting global store provider_auth_saved`)
       setGlobalStore("provider_auth_saved", data ?? {})
+      console.log(`[DEBUG FRONTEND] Global store updated, verifying...`)
+
+      // 给状态更新一些时间
+      await new Promise((resolve) => setTimeout(resolve, 100))
+
+      // 验证状态是否已更新
+      const updatedValue = globalSync.data.provider_auth_saved?.[props.provider]
+      console.log(`[DEBUG FRONTEND] Verifying saved auth after 100ms:`, updatedValue)
     } catch (e) {
-      console.error("Failed to refresh saved auth:", e)
+      console.error("[DEBUG FRONTEND] Failed to refresh saved auth:", e)
     }
 
+    console.log(`[DEBUG FRONTEND] Closing dialog`)
     dialog.close()
     showToast({
       variant: "success",
@@ -226,16 +242,34 @@ export function DialogConnectProvider(props: { provider: string }) {
             </Match>
             <Match when={method()?.type === "api"}>
               {iife(() => {
+                const savedAuth = globalSync.data.provider_auth_saved?.[props.provider] as
+                  | { type?: string; key?: string }
+                  | undefined
+                console.log(`[DEBUG FRONTEND FORM] Opening dialog for provider: ${props.provider}`)
+                console.log(`[DEBUG FRONTEND FORM] Saved auth from store:`, savedAuth)
+                console.log(`[DEBUG FRONTEND FORM] Saved auth type: ${savedAuth?.type}`)
+                if (savedAuth?.type === "api" && savedAuth?.key) {
+                  console.log(
+                    `[DEBUG FRONTEND FORM] Saved API key: ${savedAuth.key.substring(0, 8)}... (length: ${savedAuth.key.length})`,
+                  )
+                } else {
+                  console.log(`[DEBUG FRONTEND FORM] No saved API key found`)
+                }
+
                 const [formStore, setFormStore] = createStore({
                   value: (() => {
-                    const savedAuth = globalSync.data.provider_auth_saved?.[props.provider] as
-                      | { type?: string; key?: string }
-                      | undefined
                     return savedAuth?.type === "api" && savedAuth.key && savedAuth.key.length > 0 ? savedAuth.key : ""
                   })(),
                   hasChanged: false,
                   error: undefined as string | undefined,
                 })
+                console.log(
+                  `[DEBUG FRONTEND FORM] Initial form value: ${formStore.value ? formStore.value.substring(0, 8) + "..." : "empty"}`,
+                )
+                console.log(
+                  `[DEBUG FRONTEND FORM] All providers in globalSync.data.provider_auth_saved:`,
+                  Object.keys(globalSync.data.provider_auth_saved ?? {}),
+                )
 
                 const isSaveDisabled = createMemo(() => {
                   if (!isConfigured()) {
@@ -249,8 +283,13 @@ export function DialogConnectProvider(props: { provider: string }) {
                   if (!formStore.hasChanged) return
 
                   const trimmedKey = formStore.value.trim()
+                  console.log(`[DEBUG FRONTEND handleSubmit] Provider: ${props.provider}`)
+                  console.log(
+                    `[DEBUG FRONTEND handleSubmit] API key to save: ${trimmedKey.substring(0, 8)}... (length: ${trimmedKey.length})`,
+                  )
                   setFormStore("error", undefined)
 
+                  console.log(`[DEBUG FRONTEND handleSubmit] Calling auth.set API...`)
                   await globalSDK.client.auth.set({
                     providerID: props.provider,
                     auth: {
@@ -258,6 +297,7 @@ export function DialogConnectProvider(props: { provider: string }) {
                       key: trimmedKey,
                     },
                   })
+                  console.log(`[DEBUG FRONTEND handleSubmit] auth.set completed, calling complete()`)
                   await complete()
                 }
 

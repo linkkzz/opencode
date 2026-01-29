@@ -180,25 +180,37 @@ export namespace Models {
   async function updateConfigFile(apiProviders: Record<string, Provider>) {
     const configPath = path.join(Global.Path.config, "opencode.json")
 
+    console.log(`[DEBUG MODELS] Loading config from: ${configPath}`)
+
     const existingConfig = await Bun.file(configPath)
       .json()
-      .catch(() => ({
-        $schema: "https://opencode.ai/config.json",
-        provider: {},
-        mcp: {},
-      }))
+      .catch(() => {
+        console.log(`[DEBUG MODELS] Config file does not exist, using default`)
+        return {
+          $schema: "https://opencode.ai/config.json",
+          provider: {},
+          mcp: {},
+        }
+      })
 
     if (!existingConfig.provider) {
       existingConfig.provider = {}
     }
 
+    console.log(`[DEBUG MODELS] Existing providers in config: ${Object.keys(existingConfig.provider).join(", ")}`)
+    console.log(`[DEBUG MODELS] Providers from API: ${Object.keys(apiProviders).join(", ")}`)
+
     const apiProviderIDs = new Set(Object.keys(apiProviders))
+    const removedProviders: string[] = []
     for (const providerID of Object.keys(existingConfig.provider)) {
       if (!apiProviderIDs.has(providerID)) {
         delete existingConfig.provider[providerID]
+        removedProviders.push(providerID)
         log.info("removed provider not in API response", { providerID })
       }
     }
+
+    console.log(`[DEBUG MODELS] Removed providers: ${removedProviders.join(", ") || "none"}`)
 
     for (const [providerID, provider] of Object.entries(apiProviders)) {
       existingConfig.provider[providerID] = {
@@ -210,6 +222,9 @@ export namespace Models {
         models: { ...provider.models },
       }
     }
+
+    console.log(`[DEBUG MODELS] About to write updated config to: ${configPath}`)
+    console.log(`[DEBUG MODELS] Final providers in config: ${Object.keys(existingConfig.provider).join(", ")}`)
 
     await Bun.write(configPath, JSON.stringify(existingConfig, null, 2))
 
