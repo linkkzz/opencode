@@ -51,7 +51,7 @@ export const ProviderRoutes = lazy(() =>
         const providers = mapValues(filteredProviders, (x) => Provider.fromModelsProvider(x))
 
         const connected = await Provider.list()
-        const connectedKeys = Object.keys(connected).filter((key) => key === "xiaomi-sc-cloud")
+        const connectedKeys = Object.keys(connected)
 
         return c.json({
           all: Object.values(providers).filter((p) => p.id === "xiaomi-sc-cloud"),
@@ -99,24 +99,7 @@ export const ProviderRoutes = lazy(() =>
         },
       }),
       async (c) => {
-        console.log(`[DEBUG SERVER /provider/auth/saved] Endpoint called`)
-        console.log(`[DEBUG SERVER /provider/auth/saved] Request URL: ${c.req.url}`)
-        console.log(`[DEBUG SERVER /provider/auth/saved] Request method: ${c.req.method}`)
-        try {
-          const authData = await Auth.all()
-          console.log(`[DEBUG SERVER /provider/auth/saved] Success! Auth providers:`, Object.keys(authData))
-          const jsonOutput = JSON.stringify(authData, Object.keys(authData).sort())
-          console.log(`[DEBUG SERVER /provider/auth/saved] Return JSON: ${jsonOutput.substring(0, 200)}...`)
-          return c.json(authData)
-        } catch (error: unknown) {
-          console.error(`[DEBUG SERVER /provider/auth/saved] Error:`, error)
-          if (error instanceof Error) {
-            console.error(`[DEBUG SERVER /provider/auth/saved] Error name:`, error.name)
-            console.error(`[DEBUG SERVER /provider/auth/saved] Error message:`, error.message)
-            console.error(`[DEBUG SERVER /provider/auth/saved] Error stack:`, error.stack)
-          }
-          return c.json({})
-        }
+        return c.json(await Auth.all())
       },
     )
     .post(
