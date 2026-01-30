@@ -113,6 +113,46 @@ export function DialogConnectProvider(props: { provider: string }) {
   }
 
   let listRef: ListRef | undefined
+
+  const savedAuth = createMemo(() => {
+    const auth = globalSync.data.provider_auth_saved?.[props.provider] as { type?: string; key?: string } | undefined
+    const value = auth?.type === "api" && auth?.key && auth.key.length > 0 ? auth.key : ""
+    return value
+  }, undefined)
+
+  const [formStore, setFormStore] = createStore({
+    value: savedAuth(),
+    hasChanged: false,
+    error: undefined as string | undefined,
+  })
+
+  const isSaveDisabled = createMemo(() => {
+    const isEmpty = !formStore.value || formStore.value.trim().length === 0
+    return isEmpty
+  })
+
+  async function handleSubmit(e: SubmitEvent) {
+    e.preventDefault()
+    if (!formStore.hasChanged) return
+
+    const trimmedKey = formStore.value.trim()
+    setFormStore("error", undefined)
+
+    await globalSDK.client.auth.set({
+      providerID: props.provider,
+      auth: {
+        type: "api",
+        key: trimmedKey,
+      },
+    })
+    await complete()
+  }
+
+  function handleValueChange(newValue: string) {
+    setFormStore("value", newValue)
+    setFormStore("hasChanged", true)
+  }
+
   function handleKey(e: KeyboardEvent) {
     if (store.methodIndex !== undefined) return
     if (e.key === "Enter" && e.target instanceof HTMLInputElement) {
@@ -260,130 +300,57 @@ export function DialogConnectProvider(props: { provider: string }) {
               </div>
             </Match>
             <Match when={method()?.type === "api"}>
-              {iife(() => {
-                const savedAuth = globalSync.data.provider_auth_saved?.[props.provider] as
-                  | { type?: string; key?: string }
-                  | undefined
-                console.log(`[DEBUG FRONTEND FORM] Opening dialog for provider: ${props.provider}`)
-                console.log(`[DEBUG FRONTEND FORM] Saved auth from store:`, savedAuth)
-                console.log(`[DEBUG FRONTEND FORM] Saved auth type: ${savedAuth?.type}`)
-                if (savedAuth?.type === "api" && savedAuth?.key) {
-                  console.log(
-                    `[DEBUG FRONTEND FORM] Saved API key: ${savedAuth.key.substring(0, 8)}... (length: ${savedAuth.key.length})`,
-                  )
-                } else {
-                  console.log(`[DEBUG FRONTEND FORM] No saved API key found`)
-                }
-
-                const [formStore, setFormStore] = createStore({
-                  value: (() => {
-                    return savedAuth?.type === "api" && savedAuth.key && savedAuth.key.length > 0 ? savedAuth.key : ""
-                  })(),
-                  hasChanged: false,
-                  error: undefined as string | undefined,
-                })
-                console.log(
-                  `[DEBUG FRONTEND FORM] Initial form value: ${formStore.value ? formStore.value.substring(0, 8) + "..." : "empty"}`,
-                )
-                console.log(
-                  `[DEBUG FRONTEND FORM] All providers in globalSync.data.provider_auth_saved:`,
-                  Object.keys(globalSync.data.provider_auth_saved ?? {}),
-                )
-
-                const isSaveDisabled = createMemo(() => {
-                  console.log(`[DEBUG FRONTEND isSaveDisabled] Checking...`)
-                  console.log(`[DEBUG FRONTEND isSaveDisabled] isConfigured(): ${isConfigured()}`)
-                  console.log(`[DEBUG FRONTEND isSaveDisabled] formStore.value: "${formStore.value}"`)
-                  console.log(`[DEBUG FRONTEND isSaveDisabled] formStore.hasChanged: ${formStore.hasChanged}`)
-
-                  const isEmpty = !formStore.value || formStore.value.trim() === ""
-                  const result = isEmpty
-                  console.log(`[DEBUG FRONTEND isSaveDisabled] isEmpty: ${isEmpty}, result: ${result}`)
-                  return result
-                })
-
-                async function handleSubmit(e: SubmitEvent) {
-                  e.preventDefault()
-                  if (!formStore.hasChanged) return
-
-                  const trimmedKey = formStore.value.trim()
-                  console.log(`[DEBUG FRONTEND handleSubmit] Provider: ${props.provider}`)
-                  console.log(
-                    `[DEBUG FRONTEND handleSubmit] API key to save: ${trimmedKey.substring(0, 8)}... (length: ${trimmedKey.length})`,
-                  )
-                  setFormStore("error", undefined)
-
-                  console.log(`[DEBUG FRONTEND handleSubmit] Calling auth.set API...`)
-                  await globalSDK.client.auth.set({
-                    providerID: props.provider,
-                    auth: {
-                      type: "api",
-                      key: trimmedKey,
-                    },
-                  })
-                  console.log(`[DEBUG FRONTEND handleSubmit] auth.set completed, calling complete()`)
-                  await complete()
-                }
-
-                function handleValueChange(newValue: string) {
-                  setFormStore("value", newValue)
-                  setFormStore("hasChanged", true)
-                }
-
-                return (
-                  <form onSubmit={handleSubmit} class="flex flex-col gap-6">
-                    <div class="rounded-lg border border-border-weak-base bg-surface-info-base/10 p-4">
-                      <div class="flex items-start gap-3">
-                        <Icon name="check" class="size-5 text-icon-base mt-0.5 flex-shrink-0" />
-                        <div class="flex flex-col gap-2">
-                          <div class="text-14-medium text-text-base">
-                            <Switch>
-                              <Match when={props.provider === "xiaomi-sc-cloud"}>配置 API Key</Match>
-                              <Match when={true}>Connect with API Key</Match>
-                            </Switch>
-                          </div>
-                          <div class="text-13-regular text-text-weak leading-relaxed">
-                            <Switch>
-                              <Match when={props.provider === "xiaomi-sc-cloud"}>
-                                登录{" "}
-                                <Link href="https://cloudmodel.iccc.mioffice.cn/" tabIndex={-1}>
-                                  CloudModel平台
-                                </Link>{" "}
-                                创建 API Key 并填入下方。
-                              </Match>
-                              <Match when={true}>
-                                Enter your {provider().name} API key to connect your account and use models in OpenCode.
-                              </Match>
-                            </Switch>
-                          </div>
-                        </div>
+              <form onSubmit={handleSubmit} class="flex flex-col gap-6">
+                <div class="rounded-lg border border-border-weak-base bg-surface-info-base/10 p-4">
+                  <div class="flex items-start gap-3">
+                    <Icon name="check" class="size-5 text-icon-base mt-0.5 flex-shrink-0" />
+                    <div class="flex flex-col gap-2">
+                      <div class="text-14-medium text-text-base">
+                        <Switch>
+                          <Match when={props.provider === "xiaomi-sc-cloud"}>配置 API Key</Match>
+                          <Match when={true}>Connect with API Key</Match>
+                        </Switch>
+                      </div>
+                      <div class="text-13-regular text-text-weak leading-relaxed">
+                        <Switch>
+                          <Match when={props.provider === "xiaomi-sc-cloud"}>
+                            登录{" "}
+                            <Link href="https://cloudmodel.iccc.mioffice.cn/" tabIndex={-1}>
+                              CloudModel平台
+                            </Link>{" "}
+                            创建 API Key 并填入下方。
+                          </Match>
+                          <Match when={true}>
+                            Enter your {provider().name} API key to connect your account and use models in OpenCode.
+                          </Match>
+                        </Switch>
                       </div>
                     </div>
-                    <div class="w-full flex gap-2 items-start">
-                      <TextField
-                        autofocus
-                        type="text"
-                        placeholder="API Key"
-                        name="apiKey"
-                        value={formStore.value}
-                        onChange={handleValueChange}
-                        validationState={formStore.error ? "invalid" : undefined}
-                        error={formStore.error}
-                        class="flex-1"
-                      />
-                      <Button
-                        type="submit"
-                        variant="primary"
-                        disabled={isSaveDisabled()}
-                        class="h-[32px] px-4 whitespace-nowrap"
-                      >
-                        {isConfigured() ? "更新" : "保存"}
-                      </Button>
-                    </div>
-                    <div class="text-12-regular text-text-weak">[DEBUG] isSaveDisabled: {String(isSaveDisabled())}</div>
-                  </form>
-                )
-              })}
+                  </div>
+                </div>
+                <div class="w-full flex gap-2 items-start">
+                  <TextField
+                    autofocus
+                    type="text"
+                    placeholder="API Key"
+                    name="apiKey"
+                    value={formStore.value}
+                    onChange={handleValueChange}
+                    validationState={formStore.error ? "invalid" : undefined}
+                    error={formStore.error}
+                    class="flex-1"
+                  />
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    disabled={isSaveDisabled()}
+                    class="h-[32px] px-4 whitespace-nowrap"
+                  >
+                    {isConfigured() ? "更新" : "保存"}
+                  </Button>
+                </div>
+                <div class="text-12-regular text-text-weak">[DEBUG] isSaveDisabled: {String(isSaveDisabled())}</div>
+              </form>
             </Match>
             <Match when={method()?.type === "oauth"}>
               <Switch>
