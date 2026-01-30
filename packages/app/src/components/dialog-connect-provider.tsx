@@ -138,14 +138,54 @@ export function DialogConnectProvider(props: { provider: string }) {
     const trimmedKey = formStore.value.trim()
     setFormStore("error", undefined)
 
-    await globalSDK.client.auth.set({
-      providerID: props.provider,
-      auth: {
-        type: "api",
-        key: trimmedKey,
-      },
-    })
-    await complete()
+    console.log(`[DEBUG handleSubmit] Form submitted`)
+    console.log(`[DEBUG handleSubmit] Provider: ${props.provider}`)
+    console.log(`[DEBUG handleSubmit] API Key length: ${trimmedKey.length}`)
+    console.log(`[DEBUG handleSubmit] SDK URL: ${globalSDK.url}`)
+
+    console.log(`[DEBUG handleSubmit] Client exists:`, !!globalSDK.client)
+    console.log(`[DEBUG handleSubmit] Client type:`, typeof globalSDK.client)
+
+    console.log(`[DEBUG handleSubmit] Client.auth exists:`, !!globalSDK.client?.auth)
+    console.log(`[DEBUG handleSubmit] Client.auth.set exists:`, typeof globalSDK.client?.auth?.set)
+    console.log(`[DEBUG handleSubmit] Client.auth:`, globalSDK.client?.auth)
+
+    try {
+      console.log(`[DEBUG handleSubmit] Calling auth.set...`)
+      console.log(`[DEBUG handleSubmit] Parameters:`, {
+        providerID: props.provider,
+        auth: {
+          type: "api",
+          key: "***" + trimmedKey.substring(trimmedKey.length - 4),
+        },
+      })
+
+      const result = await globalSDK.client.auth.set({
+        providerID: props.provider,
+        auth: {
+          type: "api",
+          key: trimmedKey,
+        },
+      })
+
+      console.log(`[DEBUG handleSubmit] auth.set succeeded!`)
+      console.log(`[DEBUG handleSubmit] Result:`, result)
+      console.log(`[DEBUG handleSubmit] Response data:`, result.data)
+
+      if (!formStore.error) {
+        await complete()
+      }
+    } catch (error) {
+      console.error(`[DEBUG handleSubmit] auth.set FAILED!`)
+      console.error(`[DEBUG handleSubmit] Error:`, error)
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      const errorName = error instanceof Error ? error.constructor.name : typeof error
+      console.error(`[DEBUG handleSubmit] Error type: ${errorName}`)
+      console.error(`[DEBUG handleSubmit] Error message:`, errorMsg)
+
+      const errorMessage = `保存失败: ${errorMsg || "未知错误"}`
+      setFormStore("error", errorMessage)
+    }
   }
 
   function handleValueChange(newValue: string) {
@@ -181,29 +221,7 @@ export function DialogConnectProvider(props: { provider: string }) {
 
     await globalSDK.client.global.dispose()
 
-    console.log(`[DEBUG FRONTEND] Fetching saved auth from: ${globalSDK.url}/provider/auth/saved`)
-    // 重新加载已保存的认证数据
-    try {
-      const response = await fetch(`${globalSDK.url}/provider/auth/saved`)
-      const data = await response.json()
-      console.log(`[DEBUG FRONTEND] Received saved auth data:`, data)
-      console.log(`[DEBUG FRONTEND] Auth providers in response:`, Object.keys(data ?? {}))
-      console.log(`[DEBUG FRONTEND] Auth for current provider ${props.provider}:`, data?.[props.provider])
-      console.log(`[DEBUG FRONTEND] Setting global store provider_auth_saved`)
-      setGlobalStore("provider_auth_saved", data ?? {})
-      console.log(`[DEBUG FRONTEND] Global store updated, verifying...`)
-
-      // 给状态更新一些时间
-      await new Promise((resolve) => setTimeout(resolve, 100))
-
-      // 验证状态是否已更新
-      const updatedValue = globalSync.data.provider_auth_saved?.[props.provider]
-      console.log(`[DEBUG FRONTEND] Verifying saved auth after 100ms:`, updatedValue)
-    } catch (e) {
-      console.error("[DEBUG FRONTEND] Failed to refresh saved auth:", e)
-    }
-
-    console.log(`[DEBUG FRONTEND] Closing dialog`)
+    console.log(`[DEBUG FRONTEND] Disposed global SDK, closing dialog`)
     dialog.close()
     showToast({
       variant: "success",
@@ -211,6 +229,7 @@ export function DialogConnectProvider(props: { provider: string }) {
       title: `${provider().name} connected`,
       description: `${provider().name} models are now available to use.`,
     })
+    console.log(`[DEBUG FRONTEND] Dialog closed and toast shown`)
   }
 
   function goBack() {
