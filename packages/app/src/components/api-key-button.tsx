@@ -4,7 +4,11 @@ import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { useGlobalSync } from "@/context/global-sync"
 import { DialogConnectProvider } from "./dialog-connect-provider"
 
-export function ApiKeyButton() {
+interface ApiKeyButtonProps {
+  directory?: string
+}
+
+export function ApiKeyButton(props: ApiKeyButtonProps) {
   const globalSync = useGlobalSync()
   const dialog = useDialog()
 
@@ -19,7 +23,7 @@ export function ApiKeyButton() {
   })
 
   function handleManageApiKey() {
-    dialog.show(() => <DialogConnectProvider provider="xiaomi-sc-cloud" />)
+    dialog.show(() => <DialogConnectProvider provider="xiaomi-sc-cloud" directory={props.directory} />)
   }
 
   return (

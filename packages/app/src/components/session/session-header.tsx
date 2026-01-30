@@ -127,7 +127,7 @@ export function SessionHeader() {
                 <SessionMcpIndicator />
               </div>
               <div class="hidden md:flex items-center gap-3">
-                <ApiKeyButton />
+                <ApiKeyButton directory={projectDirectory()} />
                 <ThemeToggle />
               </div>
               <div class="flex items-center gap-3">
