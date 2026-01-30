@@ -125,12 +125,12 @@ export function DialogConnectProvider(props: { provider: string }) {
   onMount(() => {
     console.log(`[DEBUG FRONTEND onMount] Methods length: ${methods().length}`)
     if (methods().length === 1) {
-      console.log(`[DEBUG FRONTEND onMount] Auto-selecting method 0`)
+      console.log(`[DEBUG FRONTEND onMount] Auto-selecting method 0, not adding keyboard listener`)
       selectMethod(0)
     } else {
-      console.log(`[DEBUG FRONTEND onMount] Not auto-selecting, length is ${methods().length}`)
+      console.log(`[DEBUG FRONTEND onMount] Not auto-selecting, adding keyboard listener`)
+      document.addEventListener("keydown", handleKey)
     }
-    document.addEventListener("keydown", handleKey)
     onCleanup(() => {
       document.removeEventListener("keydown", handleKey)
     })
