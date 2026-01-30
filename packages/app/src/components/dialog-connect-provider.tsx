@@ -1,4 +1,5 @@
 import type { ProviderAuthAuthorization } from "@opencode-ai/sdk/v2/client"
+import { createOpencodeClient } from "@opencode-ai/sdk/v2/client"
 import { Button } from "@opencode-ai/ui/button"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
 import { Dialog } from "@opencode-ai/ui/dialog"
@@ -20,12 +21,36 @@ import { usePlatform } from "@/context/platform"
 import { DialogSelectModel } from "./dialog-select-model"
 import { DialogSelectProvider } from "./dialog-select-provider"
 
-export function DialogConnectProvider(props: { provider: string }) {
+export function DialogConnectProvider(props: { provider: string; directory?: string }) {
   const dialog = useDialog()
   const globalSync = useGlobalSync()
   const globalSDK = useGlobalSDK()
   const platform = usePlatform()
   const setGlobalStore = globalSync.setStore
+
+  console.log(
+    `[DEBUG DialogConnectProvider] Initialized with provider: ${props.provider}, directory: ${props.directory || "global"}`,
+  )
+
+  const directorySDK = createMemo(() => {
+    if (!props.directory) {
+      console.log(`[DEBUG DialogConnectProvider] No directory provided, using global SDK`)
+      return null
+    }
+    console.log(`[DEBUG DialogConnectProvider] Creating directory SDK for: ${props.directory}`)
+    return createOpencodeClient({
+      baseUrl: globalSDK.url,
+      fetch: platform.fetch,
+      directory: props.directory,
+      throwOnError: true,
+    })
+  })
+
+  const sdk = createMemo(() => {
+    const dirSdk = directorySDK()
+    console.log(`[DEBUG DialogConnectProvider] SDK selection:`, dirSdk ? "directory" : "global")
+    return dirSdk ?? globalSDK.client
+  })
   const provider = createMemo(() => {
     const p = globalSync.data.provider.all.find((x) => x.id === props.provider)!
     console.log(`[DEBUG FRONTEND] Provider info:`, p)
@@ -56,17 +81,15 @@ export function DialogConnectProvider(props: { provider: string }) {
   })
 
   const isConfigured = createMemo(() => {
-    const savedAuth = globalSync.data.provider_auth_saved?.[props.provider] as
-      | { type?: string; key?: string }
-      | undefined
+    const connected = globalSync.data.provider?.connected ?? []
+    const isConnected = connected.includes(props.provider)
 
     console.log(`[DEBUG FRONTEND isConfigured] Provider: ${props.provider}`)
-    console.log(`[DEBUG FRONTEND isConfigured] SavedAuth:`, savedAuth)
+    console.log(`[DEBUG FRONTEND isConfigured] In connected list:`, isConnected)
+    console.log(`[DEBUG FRONTEND isConfigured] Connected providers:`, connected)
 
-    const result = savedAuth?.type === "api" && savedAuth.key && savedAuth.key.length > 0
-    console.log(`[DEBUG FRONTEND isConfigured] Result: ${result}`)
-
-    return result
+    console.log(`[DEBUG FRONTEND isConfigured] Result: ${isConnected}`)
+    return isConnected
   })
 
   async function selectMethod(index: number) {
@@ -140,33 +163,43 @@ export function DialogConnectProvider(props: { provider: string }) {
 
     console.log(`[DEBUG handleSubmit] Form submitted`)
     console.log(`[DEBUG handleSubmit] Provider: ${props.provider}`)
+    console.log(`[DEBUG handleSubmit] Directory: ${props.directory || "not provided"}`)
     console.log(`[DEBUG handleSubmit] API Key length: ${trimmedKey.length}`)
     console.log(`[DEBUG handleSubmit] SDK URL: ${globalSDK.url}`)
 
-    console.log(`[DEBUG handleSubmit] Client exists:`, !!globalSDK.client)
-    console.log(`[DEBUG handleSubmit] Client type:`, typeof globalSDK.client)
+    const currentSDK = sdk()
+    console.log(`[DEBUG handleSubmit] Using SDK:`, currentSDK === globalSDK.client ? "global" : "directory")
+    console.log(`[DEBUG handleSubmit] Client exists:`, !!currentSDK)
+    console.log(`[DEBUG handleSubmit] Client type:`, typeof currentSDK)
 
-    console.log(`[DEBUG handleSubmit] Client.auth exists:`, !!globalSDK.client?.auth)
-    console.log(`[DEBUG handleSubmit] Client.auth.set exists:`, typeof globalSDK.client?.auth?.set)
-    console.log(`[DEBUG handleSubmit] Client.auth:`, globalSDK.client?.auth)
+    console.log(`[DEBUG handleSubmit] Client.auth exists:`, !!currentSDK?.auth)
+    console.log(`[DEBUG handleSubmit] Client.auth.set exists:`, typeof currentSDK?.auth?.set)
+    console.log(`[DEBUG handleSubmit] Client.auth:`, currentSDK?.auth)
 
     try {
-      console.log(`[DEBUG handleSubmit] Calling auth.set...`)
-      console.log(`[DEBUG handleSubmit] Parameters:`, {
-        providerID: props.provider,
-        auth: {
-          type: "api",
-          key: "***" + trimmedKey.substring(trimmedKey.length - 4),
-        },
-      })
-
-      const result = await globalSDK.client.auth.set({
+      const params: any = {
         providerID: props.provider,
         auth: {
           type: "api",
           key: trimmedKey,
         },
+      }
+
+      if (props.directory) {
+        params.directory = props.directory
+        console.log(`[DEBUG handleSubmit] Including directory in auth.set: ${props.directory}`)
+      }
+
+      console.log(`[DEBUG handleSubmit] Calling auth.set...`)
+      console.log(`[DEBUG handleSubmit] Parameters:`, {
+        ...params,
+        auth: {
+          ...params.auth,
+          key: "***" + trimmedKey.substring(trimmedKey.length - 4),
+        },
       })
+
+      const result = await currentSDK.auth.set(params)
 
       console.log(`[DEBUG handleSubmit] auth.set succeeded!`)
       console.log(`[DEBUG handleSubmit] Result:`, result)
