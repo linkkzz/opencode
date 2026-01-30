@@ -114,6 +114,7 @@ export function DialogConnectProvider(props: { provider: string }) {
 
   let listRef: ListRef | undefined
   function handleKey(e: KeyboardEvent) {
+    if (store.methodIndex !== undefined) return
     if (e.key === "Enter" && e.target instanceof HTMLInputElement) {
       return
     }
